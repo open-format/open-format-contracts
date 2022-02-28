@@ -58,8 +58,8 @@ contract MusicFactory is
         metadataURI = metadataURI_;
 
         if (royaltiesPercentage_ > 0) {
-            _setRoyalties(msg.sender, royaltiesPercentage_);
-            emit RoyaltiesSet(msg.sender, royaltiesPercentage_);
+            _setRoyalties(address(this), royaltiesPercentage_);
+            emit RoyaltiesSet(address(this), royaltiesPercentage_);
         }
 
         emit ReleaseCreated(
@@ -145,7 +145,7 @@ contract MusicFactory is
         override
         returns (uint256 newTokenId)
     {
-        require(msg.value >= releaseSalePrice, "Underpaid");
+        require(msg.value >= releaseSalePrice, "WL:E-001");
 
         newTokenId = _mintRelease(creator, receiver);
     }
@@ -202,8 +202,8 @@ contract MusicFactory is
 
     function _buyRelease(uint256 tokenId) internal virtual returns (bool) {
         uint256 tokenSalePrice = _tokenSalePrice[tokenId];
-        require(tokenSalePrice > 0, "MF: Token not for sale");
-        require(msg.value >= tokenSalePrice, "PRT:E-414");
+        require(tokenSalePrice > 0, "WL:E-002");
+        require(msg.value >= tokenSalePrice, "WL:E-003");
 
         address oldOwner = ownerOf(tokenId);
         address newOwner = _msgSender();
@@ -284,17 +284,17 @@ contract MusicFactory is
   |__________________________________*/
 
     modifier whenNotPaused() {
-        require(!_paused, "PRT:E-101");
+        require(!_paused, "WL:E-004");
         _;
     }
 
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "PRT:E-105");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "WL:E-005");
         _;
     }
 
     modifier onlyTokenCreator(uint256 tokenId) {
-        require(_tokenCreator[tokenId] == _msgSender(), "PRT:E-104");
+        require(_tokenCreator[tokenId] == _msgSender(), "WL:E-006");
         _;
     }
 }
