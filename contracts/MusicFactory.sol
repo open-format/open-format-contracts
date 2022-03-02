@@ -34,6 +34,8 @@ contract MusicFactory is
     mapping(uint256 => address) internal _tokenCreator;
     mapping(uint256 => uint256) internal _tokenSalePrice;
 
+    uint256 public communityPct = 0;
+    address public communityWallet;
     uint256 public releaseSalePrice;
     uint256 public maxSupply;
     bool internal _paused;
@@ -51,7 +53,9 @@ contract MusicFactory is
         string memory symbol_,
         uint256 maxSupply_,
         uint256 royaltiesPercentage_,
-        string memory metadataURI_
+        string memory metadataURI_,
+        address communityWallet_,
+        uint256 communityPct_
     ) ERC721(name_, symbol_) PaymentSplitter(payees_, shares_) {
         releaseSalePrice = salePrice_;
         maxSupply = maxSupply_;
@@ -60,6 +64,15 @@ contract MusicFactory is
         if (royaltiesPercentage_ > 0) {
             _setRoyalties(address(this), royaltiesPercentage_);
             emit RoyaltiesSet(address(this), royaltiesPercentage_);
+        }
+
+        if (communityWallet != address(0)) {
+            communityWallet = communityWallet_;
+        }
+
+        if (communityPct > 0) {
+            require(communityPct <= 50, "WL:E-007");
+            communityPct = communityPct_;
         }
 
         emit ReleaseCreated(
@@ -196,6 +209,11 @@ contract MusicFactory is
         _safeMint(receiver, newTokenId, "");
         _tokenCreator[newTokenId] = creator;
 
+        if (communityWallet != address(0) && communityPct > 0) {
+            uint256 amount = _calculatePercentage(communityPct, msg.value);
+            payable(communityWallet).sendValue(amount);
+        }
+
         _setTokenURI(newTokenId, metadataURI);
         emit ReleaseMinted(newTokenId, creator, receiver);
     }
@@ -241,6 +259,14 @@ contract MusicFactory is
         if (overage > 0) {
             payable(_msgSender()).sendValue(overage);
         }
+    }
+
+    function _calculatePercentage(uint256 pct, uint256 totalValue)
+        internal
+        virtual
+        returns (uint256 value)
+    {
+        return (totalValue / 100) * pct;
     }
 
     /***********************************|
