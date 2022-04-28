@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("hardhat-gas-reporter");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -21,5 +22,29 @@ task(
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: "0.8.4",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.4",
+        settings: {
+          optimizer: {
+            runs: 200,
+          },
+        },
+      },
+    ],
+  },
+  gasReporter: {
+    enabled: false,
+    currency: "GBP",
+    token: "ETH",
+    coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
+  },
+  networks: {
+    hardhat: {
+      blockGasLimit: 200000000,
+      allowUnlimitedContractSize: true,
+      gasPrice: 1e9,
+    },
+  },
 };
