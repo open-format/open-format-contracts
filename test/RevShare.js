@@ -3,9 +3,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { beforeEach } = require("mocha");
 
-describe("f0rmatFactory", function () {
+describe("revShare", function () {
   let factoryContract;
   let revShare;
+  let erc20;
   let uri = "ipfs://";
 
   beforeEach(async () => {
@@ -26,6 +27,42 @@ describe("f0rmatFactory", function () {
     );
   });
 
+  it("should split deposited ERC20 token between NFT holders", async () => {
+    // Deploy token contract
+    const ERC20Token = await ethers.getContractFactory("Token");
+    erc20 = await ERC20Token.connect(owner).deploy();
+
+    // deposit value
+    const value = ethers.utils.parseEther("1");
+    // mint two tokens
+    await factoryContract.mint();
+    await factoryContract.connect(address1).mint();
+
+    // approve
+    await erc20
+      .connect(owner)
+      .approve(factoryContract.address, value);
+
+    // deposit ETH
+    await factoryContract
+      .connect(owner)
+      ["deposit(address,address,uint256)"](
+        revShare.address,
+        erc20.address,
+        value
+      );
+
+    const ownerBalance = await revShare[
+      "getSingleTokenBalance(address,address,uint256)"
+    ](erc20.address, factoryContract.address, 0);
+    const address1Balance = await revShare[
+      "getSingleTokenBalance(address,address,uint256)"
+    ](erc20.address, factoryContract.address, 1);
+
+    expect(ownerBalance).to.equal(BigNumber.from(value).div(2));
+    expect(address1Balance).to.equal(BigNumber.from(value).div(2));
+  });
+
   it("should split deposited ETH between NFT holders", async () => {
     // deposit value
     const value = ethers.utils.parseEther("1");
@@ -34,16 +71,16 @@ describe("f0rmatFactory", function () {
     await factoryContract.connect(address1).mint();
 
     // deposit ETH
-    await factoryContract.deposit(revShare.address, { value });
+    await factoryContract
+      .connect(address1)
+      ["deposit(address)"](revShare.address, { value });
 
-    const ownerBalance = await revShare.getSingleTokenBalance(
-      factoryContract.address,
-      0
-    );
-    const address1Balance = await revShare.getSingleTokenBalance(
-      factoryContract.address,
-      1
-    );
+    const ownerBalance = await revShare[
+      "getSingleTokenBalance(address,uint256)"
+    ](factoryContract.address, 0);
+    const address1Balance = await revShare[
+      "getSingleTokenBalance(address,uint256)"
+    ](factoryContract.address, 1);
 
     expect(ownerBalance).to.equal(BigNumber.from(value).div(2));
     expect(address1Balance).to.equal(BigNumber.from(value).div(2));
@@ -64,17 +101,15 @@ describe("f0rmatFactory", function () {
     // deposit ETH
     await factoryContract
       .connect(address1)
-      .deposit(revShare.address, { value });
+      ["deposit(address)"](revShare.address, { value });
 
-    const ownerShares = await revShare.getSingleTokenBalance(
-      factoryContract.address,
-      0
-    );
+    const ownerShares = await revShare[
+      "getSingleTokenBalance(address,uint256)"
+    ](factoryContract.address, 0);
 
-    const withdraw = await factoryContract.withdraw(
-      revShare.address,
-      0
-    );
+    const withdraw = await factoryContract[
+      "withdraw(address,uint256)"
+    ](revShare.address, 0);
 
     // calculate withdraw gas
     const withdrawReceipt = await withdraw.wait();
@@ -95,22 +130,24 @@ describe("f0rmatFactory", function () {
     // mint one token
     await factoryContract.mint();
     // deposit ETH
-    await factoryContract.deposit(revShare.address, { value });
+    await factoryContract
+      .connect(address1)
+      ["deposit(address)"](revShare.address, { value });
 
     // mint another token
     await factoryContract.connect(address1).mint();
 
     // deposit more ETH
-    await factoryContract.deposit(revShare.address, { value });
+    await factoryContract
+      .connect(address1)
+      ["deposit(address)"](revShare.address, { value });
 
-    const newOwnerBalance = await revShare.getSingleTokenBalance(
-      factoryContract.address,
-      0
-    );
-    const address1Balance = await revShare.getSingleTokenBalance(
-      factoryContract.address,
-      1
-    );
+    const newOwnerBalance = await revShare[
+      "getSingleTokenBalance(address,uint256)"
+    ](factoryContract.address, 0);
+    const address1Balance = await revShare[
+      "getSingleTokenBalance(address,uint256)"
+    ](factoryContract.address, 1);
 
     expect(newOwnerBalance).to.equal(
       BigNumber.from(value).add(BigNumber.from(value).div(2))
@@ -126,10 +163,12 @@ describe("f0rmatFactory", function () {
     // mint one token
     await factoryContract.mint();
     // deposit ETH
-    await factoryContract.deposit(revShare.address, { value });
-    await factoryContract.deposit(revShare.address, {
-      value: value2,
-    });
+    await factoryContract
+      .connect(address1)
+      ["deposit(address)"](revShare.address, { value });
+    await factoryContract
+      .connect(address1)
+      ["deposit(address)"](revShare.address, { value: value2 });
 
     const totalReceived =
       await factoryContract.totalDepositedAmount();
@@ -140,7 +179,7 @@ describe("f0rmatFactory", function () {
   it("should only let approvedCaller call calculateSplit()", async () => {
     const amount = "1000000000000000000";
     await expect(
-      revShare.calculateSplit(amount, 5)
+      revShare.calculateSplitETH(amount, 5)
     ).to.be.revertedWith(
       "Only approved caller can call this function"
     );
@@ -149,7 +188,7 @@ describe("f0rmatFactory", function () {
   it("should only let approvedCaller call updateSplitBalance()", async () => {
     const amount = "1000000000000000000";
     await expect(
-      revShare.calculateSplit(amount, 0)
+      revShare.calculateSplitETH(amount, 0)
     ).to.be.revertedWith(
       "Only approved caller can call this function"
     );
