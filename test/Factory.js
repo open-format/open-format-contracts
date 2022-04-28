@@ -7,7 +7,7 @@ async function balance(address) {
   return await ethers.provider.getBalance(address);
 }
 
-describe("f0rmatFactory", function () {
+describe("Factory", function () {
   let factoryContract;
   let revShare;
   let uri = "ipfs://";
@@ -16,14 +16,18 @@ describe("f0rmatFactory", function () {
     [owner, address1, address2, address3, feeHandler] =
       await ethers.getSigners();
     const FactoryContract = await ethers.getContractFactory(
-      "TestFactory"
+      "Factory"
     );
 
     const RevShare = await ethers.getContractFactory("RevShare");
 
     revShare = await RevShare.connect(owner).deploy();
 
-    factoryContract = await FactoryContract.connect(owner).deploy();
+    factoryContract = await FactoryContract.connect(owner).deploy(
+      "My Track",
+      "TUNE",
+      uri
+    );
 
     await factoryContract
       .connect(owner)
@@ -175,14 +179,18 @@ describe("f0rmatFactory", function () {
       [owner, address1, address2, address3, feeHandler] =
         await ethers.getSigners();
       const FactoryContract = await ethers.getContractFactory(
-        "TestFactory"
+        "Factory"
       );
 
       const RevShare = await ethers.getContractFactory("RevShare");
 
       revShare = await RevShare.connect(owner).deploy();
 
-      factoryContract = await FactoryContract.connect(owner).deploy();
+      factoryContract = await FactoryContract.connect(owner).deploy(
+        "My Track",
+        "TUNE",
+        uri
+      );
 
       await factoryContract
         .connect(owner)

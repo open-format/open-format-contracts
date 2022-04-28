@@ -11,7 +11,7 @@ describe("revShare", function () {
 
   beforeEach(async () => {
     const FactoryContract = await ethers.getContractFactory(
-      "TestFactory"
+      "Factory"
     );
 
     const RevShare = await ethers.getContractFactory("RevShare");
@@ -20,7 +20,11 @@ describe("revShare", function () {
 
     [owner, address1] = await ethers.getSigners();
 
-    factoryContract = await FactoryContract.deploy();
+    factoryContract = await FactoryContract.deploy(
+      "My Track",
+      "TUNE",
+      uri
+    );
 
     await factoryContract.setApprovedRevShareContract(
       revShare.address
