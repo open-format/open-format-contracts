@@ -19,7 +19,9 @@ describe("Open Format", function () {
       "OpenFormat"
     );
 
-    const RevShare = await ethers.getContractFactory("RevShare");
+    const RevShare = await ethers.getContractFactory(
+      "DepositExtension"
+    );
 
     revShare = await RevShare.connect(owner).deploy();
 
@@ -31,11 +33,11 @@ describe("Open Format", function () {
 
     await factoryContract
       .connect(owner)
-      .setapprovedDepositManager(revShare.address);
+      .setApprovedDepositExtension(revShare.address);
   });
 
   it("should add revShare contract as deposit manager", async () => {
-    expect(await factoryContract.approvedDepositManager()).to.equal(
+    expect(await factoryContract.approvedDepositExtension()).to.equal(
       revShare.address
     );
   });
@@ -182,7 +184,9 @@ describe("Open Format", function () {
         "OpenFormat"
       );
 
-      const RevShare = await ethers.getContractFactory("RevShare");
+      const RevShare = await ethers.getContractFactory(
+        "DepositExtension"
+      );
 
       revShare = await RevShare.connect(owner).deploy();
 
@@ -194,7 +198,7 @@ describe("Open Format", function () {
 
       await factoryContract
         .connect(owner)
-        .setapprovedDepositManager(revShare.address);
+        .setApprovedDepositExtension(revShare.address);
 
       // Deploy token contract
       const ERC20Token = await ethers.getContractFactory("Token");
@@ -551,6 +555,102 @@ describe("Open Format", function () {
             .div(PERCENTAGE_SCALE)
         )
       );
+    });
+  });
+  describe("Royalties", function () {
+    let factoryContract;
+    const value = ethers.utils.parseEther("1");
+    let uri = "ipfs://";
+
+    const PERCENTAGE_SCALE = 10000;
+    let royaltyPct = 5000;
+    let royaltyAmount = value.mul(royaltyPct).div(PERCENTAGE_SCALE);
+
+    beforeEach(async () => {
+      [owner, address1, address2, address3, feeHandler] =
+        await ethers.getSigners();
+
+      const FactoryContract = await ethers.getContractFactory(
+        "OpenFormat"
+      );
+
+      factoryContract = await FactoryContract.connect(owner).deploy(
+        "My Track",
+        "TUNE",
+        uri
+      );
+    });
+
+    it("should correctly calculate royalties", async () => {
+      await factoryContract.setRoyalties(address1.address, 5000);
+      const [_, amount] = await factoryContract.royaltyInfo(0, value);
+
+      expect(amount).to.be.equal(royaltyAmount);
+    });
+
+    it("should prevent anyone from setting royalties", async () => {
+      await expect(
+        factoryContract
+          .connect(address2)
+          .setRoyalties(address1.address, 10000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("should prevent the royalties from being over 100%", async () => {
+      await expect(
+        factoryContract.setRoyalties(address1.address, 10001)
+      ).to.be.revertedWith("ERC2981Royalties: Too high");
+    });
+
+    it("should correctly distribute royalties without RoyaltyExtension", async () => {
+      // set Royalties percentage to 50%
+      await factoryContract.setRoyalties(owner.address, royaltyPct);
+
+      // mint NFT
+      await factoryContract.connect(address1)["mint()"]({
+        value,
+      });
+
+      // Set Token Sale Price
+      await factoryContract
+        .connect(address1)
+        .setTokenSalePrice(0, value);
+
+      // get owner (royalty recipient) balance before purchase
+      const ownerBalance = await balance(owner.address);
+
+      // Buy
+      await factoryContract.connect(address2)["buy(uint256)"](0, {
+        value: value,
+      });
+
+      // get owner (royalty recipient) balance after purchase
+      const newOwnerBalance = await balance(owner.address);
+      expect(newOwnerBalance).to.equal(
+        ownerBalance.add(royaltyAmount)
+      );
+    });
+
+    it("should not send royalties if not set", async () => {
+      // mint NFT
+      await factoryContract["mint()"]({
+        value,
+      });
+
+      // Set Token Sale Price
+      await factoryContract.setTokenSalePrice(0, value);
+
+      // get owner (royalty recipient) balance before purchase
+      const ownerBalance = await balance(owner.address);
+
+      // Buy
+      await factoryContract.connect(address2)["buy(uint256)"](0, {
+        value: value,
+      });
+
+      // get owner (royalty recipient) balance after purchase
+      const newOwnerBalance = await balance(owner.address);
+      expect(newOwnerBalance).to.equal(ownerBalance.add(value));
     });
   });
 });
