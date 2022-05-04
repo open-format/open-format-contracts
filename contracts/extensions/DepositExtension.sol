@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract RevShare {
+contract DepositExtension {
     using SafeMath for uint256;
 
     mapping(address => mapping(uint256 => uint256)) public balances;

@@ -27,8 +27,8 @@ contract OpenFormat is
     Ownable,
     PaymentSplitter
 {
-    address public approvedDepositManager;
-    address public approvedRoyaltiesManager;
+    address public approvedDepositExtension;
+    address public approvedRoyaltyExtension;
 
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -201,11 +201,11 @@ contract OpenFormat is
         virtual
         override
     {
-        require(contractAddress == approvedDepositManager, "Not approved");
+        require(contractAddress == approvedDepositExtension, "Not approved");
 
         uint256 total = totalSupply();
 
-        IDepositManager(approvedDepositManager).calculateSplitETH(
+        IDepositManager(approvedDepositExtension).calculateSplitETH(
             // Deposit amount
             msg.value,
             // token number of NFTs
@@ -222,16 +222,16 @@ contract OpenFormat is
         uint256 allowance = token.allowance(msg.sender, address(this));
         uint256 total = totalSupply();
 
-        require(contractAddress == approvedDepositManager, "Not approved");
+        require(contractAddress == approvedDepositExtension, "Not approved");
         require(allowance >= amount, "Check the token allowance");
 
         token.transferFrom(msg.sender, address(this), amount);
 
-        IDepositManager(approvedDepositManager).calculateSplitERC20(
+        IDepositManager(approvedDepositExtension).calculateSplitERC20(
             token,
             // Deposit amount
             amount,
-            // token number of NFTs
+            // total number of NFTs
             total
         );
         _erc20TotalDeposited[token] += amount;
@@ -242,14 +242,14 @@ contract OpenFormat is
         payable
         returns (uint256)
     {
-        require(contractAddress == approvedDepositManager, "Not approved");
+        require(contractAddress == approvedDepositExtension, "Not approved");
 
         address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedDepositManager)
+        uint256 amount = IDepositManager(approvedDepositExtension)
             .getSingleTokenBalance(address(this), tokenId);
         payable(owner).sendValue(amount);
         _totalDepositedReleased += amount;
-        IDepositManager(approvedDepositManager).updateSplitBalanceETH(
+        IDepositManager(approvedDepositExtension).updateSplitBalanceETH(
             0,
             tokenId
         );
@@ -261,13 +261,13 @@ contract OpenFormat is
         address contractAddress,
         uint256 tokenId
     ) public payable returns (uint256) {
-        require(contractAddress == approvedDepositManager, "Not approved");
+        require(contractAddress == approvedDepositExtension, "Not approved");
 
         address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedDepositManager)
+        uint256 amount = IDepositManager(approvedDepositExtension)
             .getSingleTokenBalance(token, address(this), tokenId);
         _erc20TotalDepositedReleased[token] += amount;
-        IDepositManager(approvedDepositManager).updateSplitBalanceERC20(
+        IDepositManager(approvedDepositExtension).updateSplitBalanceERC20(
             token,
             0,
             tokenId
@@ -327,19 +327,28 @@ contract OpenFormat is
         paused = !paused;
     }
 
-    function setapprovedDepositManager(address contractAddress_)
+    function setApprovedDepositExtension(address contractAddress_)
         public
         onlyOwner
     {
-        approvedDepositManager = contractAddress_;
+        approvedDepositExtension = contractAddress_;
         IDepositManager(contractAddress_).setApprovedCaller();
     }
 
-    function setApprovedRoyaltiesManager(address contractAddress_)
+    function setApprovedRoyaltyExtension(address contractAddress_)
         public
         onlyOwner
     {
-        approvedRoyaltiesManager = contractAddress_;
+        approvedRoyaltyExtension = contractAddress_;
+    }
+
+    function setApprovedRoyaltyExtensionCustomPct(uint256 amount_)
+        external
+        onlyOwner
+    {
+        require(amount_ <= PERCENTAGE_SCALE, "WP-010");
+        require(approvedRoyaltyExtension != address(0), "OF:E-001");
+        IRoyaltyManager(approvedRoyaltyExtension).setCustomRoyaltyPct(amount_);
     }
 
     function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
@@ -350,15 +359,6 @@ contract OpenFormat is
     function setSecondaryCommissionPct(uint256 amount_) public onlyOwner {
         require(amount_ <= PERCENTAGE_SCALE, "WP-009");
         secondaryCommissionPct = amount_;
-    }
-
-    function setApprovedRoyaltiesManagerCustomPct(uint256 amount_)
-        external
-        onlyOwner
-    {
-        require(amount_ <= PERCENTAGE_SCALE, "WP-010");
-        require(approvedRoyaltiesManager != address(0), "OF:E-001");
-        IRoyaltyManager(approvedRoyaltiesManager).setCustomRoyaltyPct(amount_);
     }
 
     /***********************************|
@@ -391,9 +391,9 @@ contract OpenFormat is
         );
 
         // Transfer Royalty
-        if (approvedRoyaltiesManager != address(0)) {
-            payable(approvedRoyaltiesManager).sendValue(amount);
-        } else {
+        if (approvedRoyaltyExtension != address(0)) {
+            payable(approvedRoyaltyExtension).sendValue(amount);
+        } else if (amount > 0) {
             payable(recipient).sendValue(amount);
         }
 
