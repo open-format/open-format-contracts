@@ -2,7 +2,7 @@
   "name": "the-factory",
   "scripts": {
     "node:start": "npx hardhat node",
-    "test": "npx hardhat test --network localhost"
+    "test": "npx hardhat test"
   },
   "version": "1.0.0",
   "main": "index.js",
