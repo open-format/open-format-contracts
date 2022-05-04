@@ -232,7 +232,7 @@ contract PaymentSplitter is Context {
     function allocateShares(address account, uint256 shares_) external {
         require(
             _shares[msg.sender] > shares_,
-            "You dont have enough shares to give away"
+            "PaymentSplitter: account does not have enough shares to allocate"
         );
 
         _shares[msg.sender] = _shares[msg.sender] - shares_;

@@ -25,12 +25,14 @@ contract RoyaltiesExtension is IRoyaltyManager {
     }
 
     receive() external payable {
-        require(customRoyaltyPcts[msg.sender] > 0, "customRoyaltyPct not set");
+        require(customRoyaltyPcts[msg.sender] > 0, "RE:E-001");
 
         uint256 amount = uint256(msg.value)
             .mul(customRoyaltyPcts[msg.sender])
             .div(PERCENTAGE_SCALE);
-        IOpenFormat(msg.sender).deposit{value: amount}(approvedDepositExtension);
+        IOpenFormat(msg.sender).deposit{value: amount}(
+            approvedDepositExtension
+        );
 
         payable(msg.sender).sendValue(msg.value.sub(amount));
     }

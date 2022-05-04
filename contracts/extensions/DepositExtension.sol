@@ -96,10 +96,7 @@ contract DepositExtension {
     }
 
     modifier onlyApprovedCaller() {
-        require(
-            _approvedCallers[msg.sender],
-            "Only approved caller can call this function"
-        );
+        require(_approvedCallers[msg.sender], "DE:E-001");
         _;
     }
 }
