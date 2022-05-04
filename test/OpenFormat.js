@@ -532,13 +532,18 @@ describe("Open Format", function () {
       );
 
       // mint NFT
-      await factoryContract["mint(address)"](address2.address, {
+      await factoryContract["mint()"]({
         value,
       });
 
       // Set Token Sale Price
       await factoryContract.setTokenSalePrice(0, value);
 
+      // Give factoryContract approval to transfer
+      await factoryContract.approve(factoryContract.address, 0);
+
+      console.log("approved", await factoryContract.getApproved(0));
+      console.log("FC", factoryContract.address);
       // Buy
       await factoryContract
         .connect(address1)

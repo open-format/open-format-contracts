@@ -1,9 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -17,16 +14,9 @@ import "./interfaces/IRoyaltyManager.sol";
 import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
 import "hardhat/console.sol";
+import "erc721a/contracts/ERC721A.sol";
 
-contract OpenFormat is
-    IOpenFormat,
-    ERC721,
-    ERC721URIStorage,
-    ERC721Enumerable,
-    ERC2981,
-    Ownable,
-    PaymentSplitter
-{
+contract OpenFormat is IOpenFormat, ERC721A, ERC2981, Ownable, PaymentSplitter {
     address public approvedDepositExtension;
     address public approvedRoyaltyExtension;
 
@@ -49,7 +39,7 @@ contract OpenFormat is
 
     // Add pause minting functionality
     bool public paused;
-    string public metadataURI;
+    string private baseURI;
 
     /***********************************|
  |          Initialization           |
@@ -59,8 +49,8 @@ contract OpenFormat is
         string memory name_,
         string memory symbol_,
         string memory metadataURI_
-    ) ERC721(name_, symbol_) PaymentSplitter() {
-        metadataURI = metadataURI_;
+    ) ERC721A(name_, symbol_) PaymentSplitter() {
+        baseURI = metadataURI_;
 
         emit Created(msg.sender, metadataURI_, symbol_, name_);
     }
@@ -68,44 +58,6 @@ contract OpenFormat is
     /***********************************|
   |              Overrides            |
   |__________________________________*/
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, amount);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721, IERC165, ERC721Enumerable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
-
-    function _burn(uint256 tokenId)
-        internal
-        override(ERC721, ERC721URIStorage)
-    {
-        super._burn(tokenId);
-    }
-
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        require(
-            _exists(tokenId),
-            "ERC721Metadata: URI query for nonexistent token"
-        );
-        return metadataURI;
-    }
 
     /***********************************|
   |              Public               |
@@ -364,12 +316,19 @@ contract OpenFormat is
     /***********************************|
   |         Private Functions         |
   |__________________________________*/
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return baseURI;
+    }
+
+    function setBaseURI(string memory _newBaseURI) public onlyOwner {
+        baseURI = _newBaseURI;
+    }
+
     function _mint() internal virtual returns (uint256 newTokenId) {
-        newTokenId = totalSupply();
-        _safeMint(msg.sender, newTokenId, "");
+        _safeMint(msg.sender, 1);
         _tokenCreator[newTokenId] = msg.sender;
 
-        _setTokenURI(newTokenId, metadataURI);
         emit Minted(newTokenId, msg.sender);
     }
 
@@ -405,7 +364,7 @@ contract OpenFormat is
         _refundOverpayment(tokenSalePrice);
 
         // Transfer Token
-        _transfer(oldOwner, newOwner, tokenId);
+        transferFrom(oldOwner, newOwner, tokenId);
         return true;
     }
 
@@ -442,8 +401,15 @@ contract OpenFormat is
         maxSupply = amount;
     }
 
-    function setMetadataURI(string memory _metadataURI) external onlyOwner {
-        metadataURI = _metadataURI;
+    function _isApprovedOrOwner(address from, uint256 tokenId)
+        private
+        view
+        returns (bool)
+    {
+        return
+            _msgSender() == from ||
+            isApprovedForAll(from, _msgSender()) ||
+            getApproved(tokenId) == _msgSender();
     }
 
     /***********************************|
