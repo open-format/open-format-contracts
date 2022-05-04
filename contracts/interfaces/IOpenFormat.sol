@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-interface IFactory is IERC721 {
+interface IOpenFormat is IERC721 {
     event Created(
         address indexed creator,
         string metadataURI_,
@@ -37,7 +38,25 @@ interface IFactory is IERC721 {
 
     function buy(uint256 tokenId) external payable returns (bool);
 
+    function buy(uint256 tokenId, address commissionAddress)
+        external
+        payable
+        returns (bool);
+
     function mint() external payable returns (uint256 newTokenId);
+
+    function mint(address commissionAddress)
+        external
+        payable
+        returns (uint256 newTokenId);
+
+    function deposit(address contractAddress) external payable;
+
+    function deposit(
+        address contractAddress,
+        IERC20 token,
+        uint256 amount
+    ) external payable;
 
     /***********************************|
   |     Only Token Creator/Owner      |
@@ -46,7 +65,8 @@ interface IFactory is IERC721 {
 
     function setMintingPrice(uint256 _amount) external;
 
-    function setRoyalties(uint256 _royaltiesPct) external;
+    function setRoyalties(address royaltyReceiver, uint256 _royaltiesPct)
+        external;
 
     function setMaxSupply(uint256 _amount) external;
 }

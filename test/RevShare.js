@@ -11,7 +11,7 @@ describe("revShare", function () {
 
   beforeEach(async () => {
     const FactoryContract = await ethers.getContractFactory(
-      "Factory"
+      "OpenFormat"
     );
 
     const RevShare = await ethers.getContractFactory("RevShare");
@@ -26,9 +26,7 @@ describe("revShare", function () {
       uri
     );
 
-    await factoryContract.setApprovedRevShareContract(
-      revShare.address
-    );
+    await factoryContract.setapprovedDepositManager(revShare.address);
   });
 
   it("should split deposited ERC20 token between NFT holders", async () => {
@@ -39,8 +37,8 @@ describe("revShare", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint two tokens
-    await factoryContract.mint();
-    await factoryContract.connect(address1).mint();
+    await factoryContract["mint()"]();
+    await factoryContract.connect(address1)["mint()"]();
 
     // approve
     await erc20
@@ -71,8 +69,8 @@ describe("revShare", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint two tokens
-    await factoryContract.mint();
-    await factoryContract.connect(address1).mint();
+    await factoryContract["mint()"]();
+    await factoryContract.connect(address1)["mint()"]();
 
     // deposit ETH
     await factoryContract
@@ -95,8 +93,8 @@ describe("revShare", function () {
     const value = ethers.utils.parseEther("1");
 
     // mint two tokens
-    await factoryContract.connect(owner).mint();
-    await factoryContract.connect(address1).mint();
+    await factoryContract.connect(owner)["mint()"]();
+    await factoryContract.connect(address1)["mint()"]();
     // owner shares
 
     // owner balance
@@ -132,14 +130,14 @@ describe("revShare", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint one token
-    await factoryContract.mint();
+    await factoryContract["mint()"]();
     // deposit ETH
     await factoryContract
       .connect(address1)
       ["deposit(address)"](revShare.address, { value });
 
     // mint another token
-    await factoryContract.connect(address1).mint();
+    await factoryContract.connect(address1)["mint()"]();
 
     // deposit more ETH
     await factoryContract
@@ -165,7 +163,7 @@ describe("revShare", function () {
     const value = ethers.utils.parseEther("1");
     const value2 = "87654324546789";
     // mint one token
-    await factoryContract.mint();
+    await factoryContract["mint()"]();
     // deposit ETH
     await factoryContract
       .connect(address1)
