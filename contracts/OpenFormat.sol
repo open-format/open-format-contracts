@@ -456,7 +456,7 @@ contract OpenFormat is
     }
 
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "WOF:E-010");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "OF:E-010");
         _;
     }
 }
