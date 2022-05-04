@@ -231,7 +231,7 @@ contract OpenFormat is
             token,
             // Deposit amount
             amount,
-            // token number of NFTs
+            // total number of NFTs
             total
         );
         _erc20TotalDeposited[token] += amount;
