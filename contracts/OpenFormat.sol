@@ -138,7 +138,7 @@ contract OpenFormat is
         whenNotPaused
         returns (uint256 newTokenId)
     {
-        require(msg.value >= mintingPrice, "WL:E-001");
+        require(msg.value >= mintingPrice, "OF:E-001");
 
         newTokenId = _mint();
     }
@@ -151,7 +151,7 @@ contract OpenFormat is
         whenNotPaused
         returns (uint256 newTokenId)
     {
-        require(msg.value >= mintingPrice, "WL:E-001");
+        require(msg.value >= mintingPrice, "OF:E-001");
 
         if (primaryCommissionPct > 0) {
             uint256 amount = _calculatePercentage(
@@ -181,7 +181,7 @@ contract OpenFormat is
         override
         returns (bool)
     {
-        require(commissionAddress != address(0), "WL-009");
+        require(commissionAddress != address(0), "OF:E-002");
         uint256 tokenSalePrice = _tokenSalePrice[tokenId];
         uint256 commissionAmount = _calculatePercentage(
             secondaryCommissionPct,
@@ -201,7 +201,7 @@ contract OpenFormat is
         virtual
         override
     {
-        require(contractAddress == approvedDepositExtension, "Not approved");
+        require(contractAddress == approvedDepositExtension, "OF:E-003");
 
         uint256 total = totalSupply();
 
@@ -222,8 +222,8 @@ contract OpenFormat is
         uint256 allowance = token.allowance(msg.sender, address(this));
         uint256 total = totalSupply();
 
-        require(contractAddress == approvedDepositExtension, "Not approved");
-        require(allowance >= amount, "Check the token allowance");
+        require(contractAddress == approvedDepositExtension, "OF:E-003");
+        require(allowance >= amount, "OF:E-004");
 
         token.transferFrom(msg.sender, address(this), amount);
 
@@ -242,7 +242,7 @@ contract OpenFormat is
         payable
         returns (uint256)
     {
-        require(contractAddress == approvedDepositExtension, "Not approved");
+        require(contractAddress == approvedDepositExtension, "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)
@@ -261,7 +261,7 @@ contract OpenFormat is
         address contractAddress,
         uint256 tokenId
     ) public payable returns (uint256) {
-        require(contractAddress == approvedDepositExtension, "Not approved");
+        require(contractAddress == approvedDepositExtension, "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)
@@ -302,7 +302,7 @@ contract OpenFormat is
         override
         onlyOwner
     {
-        require(_royaltiesPct > 0, "Royalties must be greater than 0");
+        require(_royaltiesPct > 0, "OF:E-004");
         require(royaltyReceiver != address(0), "OF:E-005");
 
         _setRoyalties(royaltyReceiver, _royaltiesPct);
@@ -346,18 +346,18 @@ contract OpenFormat is
         external
         onlyOwner
     {
-        require(amount_ <= PERCENTAGE_SCALE, "WP-010");
-        require(approvedRoyaltyExtension != address(0), "OF:E-001");
+        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
+        require(approvedRoyaltyExtension != address(0), "OF:E-007");
         IRoyaltyManager(approvedRoyaltyExtension).setCustomRoyaltyPct(amount_);
     }
 
     function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
-        require(amount_ <= PERCENTAGE_SCALE, "WP-008");
+        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
         primaryCommissionPct = amount_;
     }
 
     function setSecondaryCommissionPct(uint256 amount_) public onlyOwner {
-        require(amount_ <= PERCENTAGE_SCALE, "WP-009");
+        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
         secondaryCommissionPct = amount_;
     }
 
@@ -379,8 +379,8 @@ contract OpenFormat is
         returns (bool)
     {
         uint256 tokenSalePrice = _tokenSalePrice[tokenId];
-        require(tokenSalePrice > 0, "WL:E-002");
-        require(value >= tokenSalePrice, "WL:E-003");
+        require(tokenSalePrice > 0, "OF:E-007");
+        require(value >= tokenSalePrice, "OF:E-008");
 
         address oldOwner = ownerOf(tokenId);
         address newOwner = _msgSender();
@@ -451,12 +451,12 @@ contract OpenFormat is
   |__________________________________*/
 
     modifier whenNotPaused() {
-        require(!paused, "WL:E-004");
+        require(!paused, "OF:E-009");
         _;
     }
 
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "WL:E-005");
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "WOF:E-010");
         _;
     }
 }
