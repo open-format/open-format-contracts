@@ -6,39 +6,42 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IDepositManager.sol";
+import "./PaymentSplitter.sol";
 
-import "./lib/BlackholePrevention.sol";
 import "./ERC2981.sol";
-import "./interfaces/IMusicFactory.sol";
+import "./interfaces/IFactory.sol";
+import "./PaymentSplitter.sol";
 
-contract MusicFactory is
-    IMusicFactory,
+contract Factory is
+    IFactory,
     ERC721,
     ERC721URIStorage,
     ERC721Enumerable,
     ERC2981,
     Ownable,
-    BlackholePrevention,
     PaymentSplitter
 {
+    address public approvedRevShareContract;
+
+    using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Address for address payable;
     using Counters for Counters.Counter;
 
-    Counters.Counter internal _tokenIds;
-
     mapping(uint256 => address) internal _tokenCreator;
     mapping(uint256 => uint256) internal _tokenSalePrice;
 
-    uint256 public communityPct = 0;
-    address public communityWallet;
-    uint256 public releaseSalePrice;
+    address public contractCreator;
+
+    uint256 public mintingPrice;
     uint256 public maxSupply;
-    bool internal _paused;
+
+    // Add pause minting functionality
+    bool public paused;
     string public metadataURI;
 
     /***********************************|
@@ -46,44 +49,13 @@ contract MusicFactory is
  |__________________________________*/
 
     constructor(
-        address[] memory payees_,
-        uint256[] memory shares_,
-        uint256 salePrice_,
         string memory name_,
         string memory symbol_,
-        uint256 maxSupply_,
-        uint256 royaltiesPercentage_,
-        string memory metadataURI_,
-        address communityWallet_,
-        uint256 communityPct_
-    ) ERC721(name_, symbol_) PaymentSplitter(payees_, shares_) {
-        releaseSalePrice = salePrice_;
-        maxSupply = maxSupply_;
+        string memory metadataURI_
+    ) ERC721(name_, symbol_) PaymentSplitter() {
         metadataURI = metadataURI_;
 
-        if (royaltiesPercentage_ > 0) {
-            _setRoyalties(address(this), royaltiesPercentage_);
-            emit RoyaltiesSet(address(this), royaltiesPercentage_);
-        }
-
-        if (communityWallet != address(0)) {
-            communityWallet = communityWallet_;
-        }
-
-        if (communityPct > 0) {
-            require(communityPct <= 50, "WL:E-007");
-            communityPct = communityPct_;
-        }
-
-        emit ReleaseCreated(
-            msg.sender,
-            royaltiesPercentage_,
-            salePrice_,
-            metadataURI_,
-            maxSupply_,
-            symbol_,
-            name_
-        );
+        emit Created(msg.sender, metadataURI_, symbol_, name_);
     }
 
     /***********************************|
@@ -151,31 +123,134 @@ contract MusicFactory is
         return _tokenSalePrice[tokenId];
     }
 
-    function mintRelease(address creator, address receiver)
+    function mint()
         external
         payable
         virtual
         override
+        whenNotPaused
         returns (uint256 newTokenId)
     {
-        require(msg.value >= releaseSalePrice, "WL:E-001");
+        require(msg.value >= mintingPrice, "WL:E-001");
 
-        newTokenId = _mintRelease(creator, receiver);
+        newTokenId = _mint();
     }
 
-    function buyRelease(uint256 tokenId)
+    function buy(uint256 tokenId)
         external
         payable
         virtual
         override
+        whenNotPaused
         returns (bool)
     {
-        return _buyRelease(tokenId);
+        return _buy(tokenId);
+    }
+
+    function deposit(address contractAddress) public payable {
+        require(contractAddress == approvedRevShareContract, "Not approved");
+
+        uint256 total = totalSupply();
+
+        IDepositManager(approvedRevShareContract).calculateSplitETH(
+            // Deposit amount
+            msg.value,
+            // token number of NFTs
+            total
+        );
+        _totalDepositedAmount += msg.value;
+    }
+
+    function deposit(
+        address contractAddress,
+        IERC20 token,
+        uint256 amount
+    ) public payable {
+        uint256 allowance = token.allowance(msg.sender, address(this));
+        uint256 total = totalSupply();
+
+        require(contractAddress == approvedRevShareContract, "Not approved");
+        require(allowance >= amount, "Check the token allowance");
+
+        token.transferFrom(msg.sender, address(this), amount);
+
+        IDepositManager(approvedRevShareContract).calculateSplitERC20(
+            token,
+            // Deposit amount
+            amount,
+            // token number of NFTs
+            total
+        );
+        _erc20TotalDeposited[token] += amount;
+    }
+
+    function withdraw(address contractAddress, uint256 tokenId)
+        public
+        payable
+        returns (uint256)
+    {
+        require(contractAddress == approvedRevShareContract, "Not approved");
+
+        address owner = ownerOf(tokenId); // 0
+        uint256 amount = IDepositManager(approvedRevShareContract)
+            .getSingleTokenBalance(address(this), tokenId);
+        payable(owner).sendValue(amount);
+        _totalDepositedReleased += amount;
+        IDepositManager(approvedRevShareContract).updateSplitBalanceETH(
+            0,
+            tokenId
+        );
+        return amount;
+    }
+
+    function withdraw(
+        IERC20 token,
+        address contractAddress,
+        uint256 tokenId
+    ) public payable returns (uint256) {
+        require(contractAddress == approvedRevShareContract, "Not approved");
+
+        address owner = ownerOf(tokenId); // 0
+        uint256 amount = IDepositManager(approvedRevShareContract)
+            .getSingleTokenBalance(token, address(this), tokenId);
+        _erc20TotalDepositedReleased[token] += amount;
+        IDepositManager(approvedRevShareContract).updateSplitBalanceERC20(
+            token,
+            0,
+            tokenId
+        );
+        token.safeTransfer(owner, amount);
+        return amount;
     }
 
     /***********************************|
   |    Only Owner/Creator              |
   |__________________________________*/
+    function setMintingPrice(uint256 _amount)
+        external
+        virtual
+        override
+        onlyOwner
+    {
+        mintingPrice = _amount;
+    }
+
+    function setRoyalties(uint256 _royaltiesPct)
+        external
+        virtual
+        override
+        onlyOwner
+    {
+        require(_royaltiesPct > 0, "Royalties must be greater than 0");
+
+        _setRoyalties(address(this), _royaltiesPct);
+        emit RoyaltiesSet(address(this), _royaltiesPct);
+    }
+
+    function setMaxSupply(uint256 _amount) external virtual override onlyOwner {
+        maxSupply = _amount;
+    }
+
     function setTokenSalePrice(uint256 tokenId, uint256 _salePrice)
         external
         virtual
@@ -186,39 +261,31 @@ contract MusicFactory is
         _setTokenSalePrice(tokenId, _salePrice);
     }
 
-    function setReleaseSalePrice(uint256 _salePrice)
-        external
-        virtual
-        whenNotPaused
+    function togglePausedState() external virtual onlyOwner {
+        paused = !paused;
+    }
+
+    function setApprovedRevShareContract(address contractAddress_)
+        public
         onlyOwner
     {
-        releaseSalePrice = _salePrice;
+        approvedRevShareContract = contractAddress_;
+        IDepositManager(contractAddress_).setApprovedCaller();
     }
 
     /***********************************|
   |         Private Functions         |
   |__________________________________*/
-    function _mintRelease(address creator, address receiver)
-        internal
-        virtual
-        returns (uint256 newTokenId)
-    {
-        _tokenIds.increment();
-
-        newTokenId = _tokenIds.current();
-        _safeMint(receiver, newTokenId, "");
-        _tokenCreator[newTokenId] = creator;
-
-        if (communityWallet != address(0) && communityPct > 0) {
-            uint256 amount = _calculatePercentage(communityPct, msg.value);
-            payable(communityWallet).sendValue(amount);
-        }
+    function _mint() internal virtual returns (uint256 newTokenId) {
+        newTokenId = totalSupply();
+        _safeMint(msg.sender, newTokenId, "");
+        _tokenCreator[newTokenId] = msg.sender;
 
         _setTokenURI(newTokenId, metadataURI);
-        emit ReleaseMinted(newTokenId, creator, receiver);
+        emit Minted(newTokenId, msg.sender);
     }
 
-    function _buyRelease(uint256 tokenId) internal virtual returns (bool) {
+    function _buy(uint256 tokenId) internal virtual returns (bool) {
         uint256 tokenSalePrice = _tokenSalePrice[tokenId];
         require(tokenSalePrice > 0, "WL:E-002");
         require(msg.value >= tokenSalePrice, "WL:E-003");
@@ -240,7 +307,7 @@ contract MusicFactory is
         // Transfer Payment
         payable(oldOwner).sendValue(tokenSalePrice.sub(amount));
 
-        emit ReleaseSold(tokenId, oldOwner, newOwner, tokenSalePrice);
+        emit Sold(tokenId, oldOwner, newOwner, tokenSalePrice);
 
         _refundOverpayment(tokenSalePrice);
         return true;
@@ -270,8 +337,8 @@ contract MusicFactory is
     }
 
     /***********************************|
-  |          Only Release Owner/Creator  |
-  |            |
+  |          Only  Owner/Creator  |
+  |                                     |
   |__________________________________*/
 
     function setTotalSupply(uint256 amount) external onlyOwner {
@@ -282,45 +349,17 @@ contract MusicFactory is
         metadataURI = _metadataURI;
     }
 
-    function withdrawEther(address payable receiver, uint256 amount)
-        external
-        onlyOwner
-    {
-        _withdrawEther(receiver, amount);
-    }
-
-    function withdrawErc20(
-        address payable receiver,
-        address tokenAddress,
-        uint256 amount
-    ) external onlyOwner {
-        _withdrawERC20(receiver, tokenAddress, amount);
-    }
-
-    function withdrawERC721(
-        address payable receiver,
-        address tokenAddress,
-        uint256 tokenId
-    ) external onlyOwner {
-        _withdrawERC721(receiver, tokenAddress, tokenId);
-    }
-
     /***********************************|
   |             Modifiers             |
   |__________________________________*/
 
     modifier whenNotPaused() {
-        require(!_paused, "WL:E-004");
+        require(!paused, "WL:E-004");
         _;
     }
 
     modifier onlyTokenOwnerOrApproved(uint256 tokenId) {
         require(_isApprovedOrOwner(_msgSender(), tokenId), "WL:E-005");
-        _;
-    }
-
-    modifier onlyTokenCreator(uint256 tokenId) {
-        require(_tokenCreator[tokenId] == _msgSender(), "WL:E-006");
         _;
     }
 }
