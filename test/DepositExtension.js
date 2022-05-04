@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { beforeEach } = require("mocha");
 
-describe("revShare", function () {
+describe("DepositExtension", function () {
   let factoryContract;
   let revShare;
   let erc20;
@@ -14,7 +14,9 @@ describe("revShare", function () {
       "OpenFormat"
     );
 
-    const RevShare = await ethers.getContractFactory("RevShare");
+    const RevShare = await ethers.getContractFactory(
+      "DepositExtension"
+    );
 
     revShare = await RevShare.deploy();
 
@@ -26,7 +28,9 @@ describe("revShare", function () {
       uri
     );
 
-    await factoryContract.setapprovedDepositManager(revShare.address);
+    await factoryContract.setApprovedDepositExtension(
+      revShare.address
+    );
   });
 
   it("should split deposited ERC20 token between NFT holders", async () => {
