@@ -159,6 +159,13 @@ contract OpenFormat is
                 msg.value
             );
             payable(commissionAddress).sendValue(amount);
+
+            emit CommissionPaid(
+                "primary",
+                commissionAddress,
+                totalSupply(),
+                msg.value
+            );
         }
 
         newTokenId = _mint();
@@ -190,6 +197,13 @@ contract OpenFormat is
 
         if (secondaryCommissionPct > 0) {
             payable(commissionAddress).sendValue(commissionAmount);
+
+            emit CommissionPaid(
+                "secondary",
+                commissionAddress,
+                tokenId,
+                msg.value
+            );
         }
 
         return _buy(tokenId, uint256(msg.value).sub(commissionAmount));
@@ -212,6 +226,8 @@ contract OpenFormat is
             total
         );
         _totalDepositedAmount += msg.value;
+
+        emit TotalDepositedAmountUpdated(msg.value);
     }
 
     function deposit(
@@ -235,6 +251,7 @@ contract OpenFormat is
             total
         );
         _erc20TotalDeposited[token] += amount;
+        emit ERC20TotalDepositedAmountUpdated(token, msg.value);
     }
 
     function withdraw(address contractAddress, uint256 tokenId)
@@ -253,6 +270,8 @@ contract OpenFormat is
             0,
             tokenId
         );
+
+        emit TokenBalanceWithdrawn(tokenId, amount);
         return amount;
     }
 
@@ -273,6 +292,8 @@ contract OpenFormat is
             tokenId
         );
         token.safeTransfer(owner, amount);
+
+        emit ERC20TokenBalanceWithdrawn(token, tokenId, amount);
         return amount;
     }
 
@@ -294,6 +315,7 @@ contract OpenFormat is
         onlyOwner
     {
         mintingPrice = _amount;
+        emit MintingPriceSet(_amount);
     }
 
     function setRoyalties(address royaltyReceiver, uint256 _royaltiesPct)
@@ -311,6 +333,7 @@ contract OpenFormat is
 
     function setMaxSupply(uint256 _amount) external virtual override onlyOwner {
         maxSupply = _amount;
+        emit MaxSupplySet(_amount);
     }
 
     function setTokenSalePrice(uint256 tokenId, uint256 _salePrice)
@@ -325,6 +348,7 @@ contract OpenFormat is
 
     function togglePausedState() external virtual onlyOwner {
         paused = !paused;
+        emit PausedStateSet(!paused);
     }
 
     function setApprovedDepositExtension(address contractAddress_)
@@ -333,6 +357,7 @@ contract OpenFormat is
     {
         approvedDepositExtension = contractAddress_;
         IDepositManager(contractAddress_).setApprovedCaller();
+        emit ApprovedDepositExtensionSet(approvedDepositExtension);
     }
 
     function setApprovedRoyaltyExtension(address contractAddress_)
@@ -340,6 +365,7 @@ contract OpenFormat is
         onlyOwner
     {
         approvedRoyaltyExtension = contractAddress_;
+        emit ApprovedRoyaltyExtensionSet(approvedRoyaltyExtension);
     }
 
     function setApprovedRoyaltyExtensionCustomPct(uint256 amount_)
@@ -349,16 +375,19 @@ contract OpenFormat is
         require(amount_ <= PERCENTAGE_SCALE, "WP-010");
         require(approvedRoyaltyExtension != address(0), "OF:E-001");
         IRoyaltyManager(approvedRoyaltyExtension).setCustomRoyaltyPct(amount_);
+        emit ApprovedRoyaltyExtensionCustomPctSet(amount_);
     }
 
     function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
         require(amount_ <= PERCENTAGE_SCALE, "WP-008");
         primaryCommissionPct = amount_;
+        emit PrimaryCommissionSet(amount_);
     }
 
     function setSecondaryCommissionPct(uint256 amount_) public onlyOwner {
         require(amount_ <= PERCENTAGE_SCALE, "WP-009");
         secondaryCommissionPct = amount_;
+        emit SecondaryCommissionSet(amount_);
     }
 
     /***********************************|
@@ -395,6 +424,7 @@ contract OpenFormat is
             payable(approvedRoyaltyExtension).sendValue(amount);
         } else if (amount > 0) {
             payable(recipient).sendValue(amount);
+            emit RoyaltyPaid(recipient, amount);
         }
 
         // Transfer Payment
@@ -431,19 +461,6 @@ contract OpenFormat is
     {
         // return (totalValue / 100) * pct;
         return totalValue.mul(pct).div(PERCENTAGE_SCALE);
-    }
-
-    /***********************************|
-  |          Only  Owner/Creator      |
-  |                                   |
-  |__________________________________*/
-
-    function setTotalSupply(uint256 amount) external onlyOwner {
-        maxSupply = amount;
-    }
-
-    function setMetadataURI(string memory _metadataURI) external onlyOwner {
-        metadataURI = _metadataURI;
     }
 
     /***********************************|
