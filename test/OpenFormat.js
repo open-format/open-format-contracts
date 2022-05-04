@@ -462,7 +462,9 @@ describe("Open Format", function () {
       factoryContract
         .connect(owner)
         .allocateShares(address1.address, 101)
-    ).to.be.revertedWith("You dont have enough shares to give away");
+    ).to.be.revertedWith(
+      "PaymentSplitter: account does not have enough shares to allocate"
+    );
   });
   describe("Sales commission", function () {
     it("should allow the owner to set the sales commission", async () => {
@@ -475,7 +477,7 @@ describe("Open Format", function () {
     it("should prevent from setting a sales commission over 100%", async () => {
       await expect(
         factoryContract.setPrimaryCommissionPct(10001)
-      ).to.be.revertedWith("WP-008");
+      ).to.be.revertedWith("OF:E-006");
     });
 
     it("shoud prevent anyone to set sales commission", async () => {

@@ -98,7 +98,7 @@ describe("RoyaltiesExtension", function () {
   it("should revert if royaltyManager is not set", async () => {
     await expect(
       factoryContract.setApprovedRoyaltyExtensionCustomPct(holdersPct)
-    ).to.be.revertedWith("OF:E-001");
+    ).to.be.revertedWith("OF:E-007");
   });
 
   it("should not use royaltyManager if not set", async () => {
