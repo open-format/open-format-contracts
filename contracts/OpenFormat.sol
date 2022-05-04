@@ -13,11 +13,13 @@ import "./interfaces/IDepositManager.sol";
 import "./PaymentSplitter.sol";
 
 import "./ERC2981.sol";
-import "./interfaces/IFactory.sol";
+import "./interfaces/IRoyaltyManager.sol";
+import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
+import "hardhat/console.sol";
 
-contract Factory is
-    IFactory,
+contract OpenFormat is
+    IOpenFormat,
     ERC721,
     ERC721URIStorage,
     ERC721Enumerable,
@@ -25,12 +27,15 @@ contract Factory is
     Ownable,
     PaymentSplitter
 {
-    address public approvedRevShareContract;
+    address public approvedDepositManager;
+    address public approvedRoyaltiesManager;
 
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Address for address payable;
     using Counters for Counters.Counter;
+
+    uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
 
     mapping(uint256 => address) internal _tokenCreator;
     mapping(uint256 => uint256) internal _tokenSalePrice;
@@ -39,6 +44,8 @@ contract Factory is
 
     uint256 public mintingPrice;
     uint256 public maxSupply;
+    uint256 public primaryCommissionPct;
+    uint256 public secondaryCommissionPct;
 
     // Add pause minting functionality
     bool public paused;
@@ -136,23 +143,69 @@ contract Factory is
         newTokenId = _mint();
     }
 
-    function buy(uint256 tokenId)
+    function mint(address commissionAddress)
         external
         payable
         virtual
         override
         whenNotPaused
-        returns (bool)
+        returns (uint256 newTokenId)
     {
-        return _buy(tokenId);
+        require(msg.value >= mintingPrice, "WL:E-001");
+
+        if (primaryCommissionPct > 0) {
+            uint256 amount = _calculatePercentage(
+                primaryCommissionPct,
+                msg.value
+            );
+            payable(commissionAddress).sendValue(amount);
+        }
+
+        newTokenId = _mint();
     }
 
-    function deposit(address contractAddress) public payable {
-        require(contractAddress == approvedRevShareContract, "Not approved");
+    function buy(uint256 tokenId)
+        external
+        payable
+        virtual
+        override
+        returns (bool)
+    {
+        return _buy(tokenId, msg.value);
+    }
+
+    function buy(uint256 tokenId, address commissionAddress)
+        external
+        payable
+        virtual
+        override
+        returns (bool)
+    {
+        require(commissionAddress != address(0), "WL-009");
+        uint256 tokenSalePrice = _tokenSalePrice[tokenId];
+        uint256 commissionAmount = _calculatePercentage(
+            secondaryCommissionPct,
+            tokenSalePrice
+        );
+
+        if (secondaryCommissionPct > 0) {
+            payable(commissionAddress).sendValue(commissionAmount);
+        }
+
+        return _buy(tokenId, uint256(msg.value).sub(commissionAmount));
+    }
+
+    function deposit(address contractAddress)
+        external
+        payable
+        virtual
+        override
+    {
+        require(contractAddress == approvedDepositManager, "Not approved");
 
         uint256 total = totalSupply();
 
-        IDepositManager(approvedRevShareContract).calculateSplitETH(
+        IDepositManager(approvedDepositManager).calculateSplitETH(
             // Deposit amount
             msg.value,
             // token number of NFTs
@@ -165,16 +218,16 @@ contract Factory is
         address contractAddress,
         IERC20 token,
         uint256 amount
-    ) public payable {
+    ) external payable virtual override {
         uint256 allowance = token.allowance(msg.sender, address(this));
         uint256 total = totalSupply();
 
-        require(contractAddress == approvedRevShareContract, "Not approved");
+        require(contractAddress == approvedDepositManager, "Not approved");
         require(allowance >= amount, "Check the token allowance");
 
         token.transferFrom(msg.sender, address(this), amount);
 
-        IDepositManager(approvedRevShareContract).calculateSplitERC20(
+        IDepositManager(approvedDepositManager).calculateSplitERC20(
             token,
             // Deposit amount
             amount,
@@ -189,14 +242,14 @@ contract Factory is
         payable
         returns (uint256)
     {
-        require(contractAddress == approvedRevShareContract, "Not approved");
+        require(contractAddress == approvedDepositManager, "Not approved");
 
         address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedRevShareContract)
+        uint256 amount = IDepositManager(approvedDepositManager)
             .getSingleTokenBalance(address(this), tokenId);
         payable(owner).sendValue(amount);
         _totalDepositedReleased += amount;
-        IDepositManager(approvedRevShareContract).updateSplitBalanceETH(
+        IDepositManager(approvedDepositManager).updateSplitBalanceETH(
             0,
             tokenId
         );
@@ -208,19 +261,27 @@ contract Factory is
         address contractAddress,
         uint256 tokenId
     ) public payable returns (uint256) {
-        require(contractAddress == approvedRevShareContract, "Not approved");
+        require(contractAddress == approvedDepositManager, "Not approved");
 
         address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedRevShareContract)
+        uint256 amount = IDepositManager(approvedDepositManager)
             .getSingleTokenBalance(token, address(this), tokenId);
         _erc20TotalDepositedReleased[token] += amount;
-        IDepositManager(approvedRevShareContract).updateSplitBalanceERC20(
+        IDepositManager(approvedDepositManager).updateSplitBalanceERC20(
             token,
             0,
             tokenId
         );
         token.safeTransfer(owner, amount);
         return amount;
+    }
+
+    function getPrimaryCommissionPct() external view returns (uint256) {
+        return primaryCommissionPct;
+    }
+
+    function getSecondaryCommissionPct() external view returns (uint256) {
+        return secondaryCommissionPct;
     }
 
     /***********************************|
@@ -235,15 +296,16 @@ contract Factory is
         mintingPrice = _amount;
     }
 
-    function setRoyalties(uint256 _royaltiesPct)
+    function setRoyalties(address royaltyReceiver, uint256 _royaltiesPct)
         external
         virtual
         override
         onlyOwner
     {
         require(_royaltiesPct > 0, "Royalties must be greater than 0");
+        require(royaltyReceiver != address(0), "OF:E-005");
 
-        _setRoyalties(address(this), _royaltiesPct);
+        _setRoyalties(royaltyReceiver, _royaltiesPct);
         emit RoyaltiesSet(address(this), _royaltiesPct);
     }
 
@@ -265,12 +327,38 @@ contract Factory is
         paused = !paused;
     }
 
-    function setApprovedRevShareContract(address contractAddress_)
+    function setapprovedDepositManager(address contractAddress_)
         public
         onlyOwner
     {
-        approvedRevShareContract = contractAddress_;
+        approvedDepositManager = contractAddress_;
         IDepositManager(contractAddress_).setApprovedCaller();
+    }
+
+    function setApprovedRoyaltiesManager(address contractAddress_)
+        public
+        onlyOwner
+    {
+        approvedRoyaltiesManager = contractAddress_;
+    }
+
+    function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
+        require(amount_ <= PERCENTAGE_SCALE, "WP-008");
+        primaryCommissionPct = amount_;
+    }
+
+    function setSecondaryCommissionPct(uint256 amount_) public onlyOwner {
+        require(amount_ <= PERCENTAGE_SCALE, "WP-009");
+        secondaryCommissionPct = amount_;
+    }
+
+    function setApprovedRoyaltiesManagerCustomPct(uint256 amount_)
+        external
+        onlyOwner
+    {
+        require(amount_ <= PERCENTAGE_SCALE, "WP-010");
+        require(approvedRoyaltiesManager != address(0), "OF:E-001");
+        IRoyaltyManager(approvedRoyaltiesManager).setCustomRoyaltyPct(amount_);
     }
 
     /***********************************|
@@ -285,10 +373,14 @@ contract Factory is
         emit Minted(newTokenId, msg.sender);
     }
 
-    function _buy(uint256 tokenId) internal virtual returns (bool) {
+    function _buy(uint256 tokenId, uint256 value)
+        internal
+        virtual
+        returns (bool)
+    {
         uint256 tokenSalePrice = _tokenSalePrice[tokenId];
         require(tokenSalePrice > 0, "WL:E-002");
-        require(msg.value >= tokenSalePrice, "WL:E-003");
+        require(value >= tokenSalePrice, "WL:E-003");
 
         address oldOwner = ownerOf(tokenId);
         address newOwner = _msgSender();
@@ -298,11 +390,12 @@ contract Factory is
             tokenSalePrice
         );
 
-        // Transfer Token
-        _transfer(oldOwner, newOwner, tokenId);
-
         // Transfer Royalty
-        payable(recipient).sendValue(amount);
+        if (approvedRoyaltiesManager != address(0)) {
+            payable(approvedRoyaltiesManager).sendValue(amount);
+        } else {
+            payable(recipient).sendValue(amount);
+        }
 
         // Transfer Payment
         payable(oldOwner).sendValue(tokenSalePrice.sub(amount));
@@ -310,6 +403,9 @@ contract Factory is
         emit Sold(tokenId, oldOwner, newOwner, tokenSalePrice);
 
         _refundOverpayment(tokenSalePrice);
+
+        // Transfer Token
+        _transfer(oldOwner, newOwner, tokenId);
         return true;
     }
 
@@ -333,12 +429,13 @@ contract Factory is
         virtual
         returns (uint256 value)
     {
-        return (totalValue / 100) * pct;
+        // return (totalValue / 100) * pct;
+        return totalValue.mul(pct).div(PERCENTAGE_SCALE);
     }
 
     /***********************************|
-  |          Only  Owner/Creator  |
-  |                                     |
+  |          Only  Owner/Creator      |
+  |                                   |
   |__________________________________*/
 
     function setTotalSupply(uint256 amount) external onlyOwner {
