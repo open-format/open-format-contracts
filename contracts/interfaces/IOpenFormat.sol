@@ -16,17 +16,50 @@ interface IOpenFormat is IERC721 {
         string symbol,
         string name
     );
-    event PausedStateSet(bool isPaused);
-    event SalePriceSet(uint256 indexed tokenId, uint256 salePrice);
+
     event Sold(
         uint256 indexed tokenId,
         address indexed oldOwner,
         address indexed newOwner,
         uint256 salePrice
     );
-    event Minted(uint256 indexed newTokenId, address indexed owner);
 
+    event CommissionPaid(
+        string indexed commissionType,
+        address indexed to,
+        uint256 tokenId,
+        uint256 amount
+    );
+
+    event ERC20TotalDepositedAmountUpdated(
+        IERC20 indexed token,
+        uint256 indexed amount
+    );
+
+    event TokenBalanceWithdrawn(
+        uint256 indexed tokenId,
+        uint256 indexed amount
+    );
+
+    event ERC20TokenBalanceWithdrawn(
+        IERC20 token,
+        uint256 indexed tokenId,
+        uint256 indexed amount
+    );
+
+    event PausedStateSet(bool isPaused);
+    event SalePriceSet(uint256 indexed tokenId, uint256 salePrice);
+    event Minted(uint256 indexed newTokenId, address indexed owner);
     event RoyaltiesSet(address indexed receiver, uint256 indexed percentage);
+    event TotalDepositedAmountUpdated(uint256 indexed amount);
+    event MintingPriceSet(uint256 indexed amount);
+    event MaxSupplySet(uint256 indexed amount);
+    event ApprovedDepositExtensionSet(address indexed contractAddress);
+    event ApprovedRoyaltyExtensionSet(address indexed contractAddress);
+    event ApprovedRoyaltyExtensionCustomPctSet(uint256 indexed amount);
+    event PrimaryCommissionSet(uint256 indexed amount);
+    event SecondaryCommissionSet(uint256 indexed amount);
+    event RoyaltyPaid(address indexed recipient, uint256 indexed amount);
 
     /***********************************|
   |              Public               |
