@@ -1,5 +1,9 @@
 {
   "name": "the-factory",
+  "scripts": {
+    "node:start": "npx hardhat node",
+    "test": "npx hardhat test --network localhost"
+  },
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
