@@ -12,12 +12,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 interface IOpenFormat is IERC721 {
     event Created(
         address indexed creator,
-        string metadataURI_,
+        string metadataURI,
         string symbol,
         string name,
         uint256 maxSupply,
         uint256 mintingPrice,
-        uint256 _royaltiesPct
+        uint256 royaltiesPct
     );
 
     event Sold(
@@ -101,10 +101,10 @@ interface IOpenFormat is IERC721 {
   |__________________________________*/
     function setTokenSalePrice(uint256 tokenId, uint256 salePrice) external;
 
-    function setMintingPrice(uint256 _amount) external;
+    function setMintingPrice(uint256 amount) external;
 
-    function setRoyalties(address royaltyReceiver, uint256 _royaltiesPct)
+    function setRoyalties(address royaltyReceiver, uint256 royaltiesPct)
         external;
 
-    function setMaxSupply(uint256 _amount) external;
+    function setMaxSupply(uint256 amount) external;
 }
