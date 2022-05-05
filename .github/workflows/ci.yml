@@ -1,9 +1,7 @@
 name: "CI"
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - "*"
+
+on: [push, pull_request]
+
 jobs:
   unit-tests:
     name: "Unit Tests"
