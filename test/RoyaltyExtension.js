@@ -37,7 +37,10 @@ describe("RoyaltiesExtension", function () {
     factoryContract = await FactoryContract.deploy(
       "My Track",
       "TUNE",
-      uri
+      uri,
+      100,
+      value,
+      250
     );
   });
 

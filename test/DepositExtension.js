@@ -8,6 +8,7 @@ describe("DepositExtension", function () {
   let revShare;
   let erc20;
   let uri = "ipfs://";
+  const value = ethers.utils.parseEther("1");
 
   beforeEach(async () => {
     const FactoryContract = await ethers.getContractFactory(
@@ -25,7 +26,10 @@ describe("DepositExtension", function () {
     factoryContract = await FactoryContract.deploy(
       "My Track",
       "TUNE",
-      uri
+      uri,
+      100,
+      value,
+      250
     );
 
     await factoryContract.setApprovedDepositExtension(
@@ -41,8 +45,8 @@ describe("DepositExtension", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint two tokens
-    await factoryContract["mint()"]();
-    await factoryContract.connect(address1)["mint()"]();
+    await factoryContract["mint()"]({ value });
+    await factoryContract.connect(address1)["mint()"]({ value });
 
     // approve
     await erc20
@@ -73,8 +77,8 @@ describe("DepositExtension", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint two tokens
-    await factoryContract["mint()"]();
-    await factoryContract.connect(address1)["mint()"]();
+    await factoryContract["mint()"]({ value });
+    await factoryContract.connect(address1)["mint()"]({ value });
 
     // deposit ETH
     await factoryContract
@@ -97,8 +101,8 @@ describe("DepositExtension", function () {
     const value = ethers.utils.parseEther("1");
 
     // mint two tokens
-    await factoryContract.connect(owner)["mint()"]();
-    await factoryContract.connect(address1)["mint()"]();
+    await factoryContract.connect(owner)["mint()"]({ value });
+    await factoryContract.connect(address1)["mint()"]({ value });
     // owner shares
 
     // owner balance
@@ -134,14 +138,14 @@ describe("DepositExtension", function () {
     // deposit value
     const value = ethers.utils.parseEther("1");
     // mint one token
-    await factoryContract["mint()"]();
+    await factoryContract["mint()"]({ value });
     // deposit ETH
     await factoryContract
       .connect(address1)
       ["deposit(address)"](revShare.address, { value });
 
     // mint another token
-    await factoryContract.connect(address1)["mint()"]();
+    await factoryContract.connect(address1)["mint()"]({ value });
 
     // deposit more ETH
     await factoryContract
@@ -167,7 +171,7 @@ describe("DepositExtension", function () {
     const value = ethers.utils.parseEther("1");
     const value2 = "87654324546789";
     // mint one token
-    await factoryContract["mint()"]();
+    await factoryContract["mint()"]({ value });
     // deposit ETH
     await factoryContract
       .connect(address1)

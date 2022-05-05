@@ -14,7 +14,10 @@ interface IOpenFormat is IERC721 {
         address indexed creator,
         string metadataURI_,
         string symbol,
-        string name
+        string name,
+        uint256 maxSupply,
+        uint256 mintingPrice,
+        uint256 _royaltiesPct
     );
 
     event Sold(
@@ -82,6 +85,8 @@ interface IOpenFormat is IERC721 {
         external
         payable
         returns (uint256 newTokenId);
+
+    function burn(uint256 tokenId) external;
 
     function deposit(address contractAddress) external payable;
 

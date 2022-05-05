@@ -11,6 +11,8 @@ describe("Open Format", function () {
   let factoryContract;
   let revShare;
   let uri = "ipfs://";
+  const value = ethers.utils.parseEther("1");
+  const mintingPrice = ethers.utils.parseEther("5");
 
   beforeEach(async () => {
     [owner, address1, address2, address3, feeHandler] =
@@ -25,10 +27,13 @@ describe("Open Format", function () {
 
     revShare = await RevShare.connect(owner).deploy();
 
-    factoryContract = await FactoryContract.connect(owner).deploy(
+    factoryContract = await FactoryContract.deploy(
       "My Track",
       "TUNE",
-      uri
+      uri,
+      100,
+      mintingPrice,
+      250
     );
 
     await factoryContract
@@ -43,8 +48,27 @@ describe("Open Format", function () {
   });
 
   it("should increase totalSupply of tokens", async () => {
-    await factoryContract["mint()"]();
+    await factoryContract["mint()"]({ value: mintingPrice });
     expect(await factoryContract.totalSupply()).to.equal(1);
+  });
+
+  it("should burn token", async () => {
+    await factoryContract["mint()"]({ value: mintingPrice });
+    const totalSupply = await factoryContract.totalSupply();
+    await factoryContract.burn(0);
+    const newTotalSupply = await factoryContract.totalSupply();
+
+    expect(newTotalSupply).to.be.not.equal(totalSupply);
+    expect(newTotalSupply).to.be.equal(0);
+    expect(totalSupply).to.be.equal(1);
+  });
+
+  it("should only allow owner to burn token", async () => {
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    await expect(
+      factoryContract.connect(address1).burn(0)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("should deposit ETH into contract", async () => {
@@ -62,7 +86,6 @@ describe("Open Format", function () {
   });
 
   it("send correct amount via payment splitter", async () => {
-    const value = ethers.utils.parseEther("1");
     // send some ETH to contract from address1
     address1.sendTransaction({
       to: factoryContract.address,
@@ -70,7 +93,9 @@ describe("Open Format", function () {
     });
 
     // mint NFT
-    await factoryContract.connect(address1)["mint()"]();
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice });
 
     // deposit some ETH via deposit() function
     await factoryContract
@@ -92,14 +117,13 @@ describe("Open Format", function () {
       );
 
     expect(newContractBalance).to.equal(
-      BigNumber.from(contractBalance).sub(
-        BigNumber.from(value).div(100).mul(100)
-      )
+      BigNumber.from(contractBalance)
+        .sub(BigNumber.from(value).div(100).mul(100))
+        .sub(mintingPrice)
     );
   });
 
   it("send correct amount via payment splitter 2", async () => {
-    const value = ethers.utils.parseEther("0.43546743566");
     const value2 = ethers.utils.parseEther("4.3564");
 
     // allocate 40% from owner => address1
@@ -119,10 +143,18 @@ describe("Open Format", function () {
     });
 
     // mint 4 NFTs
-    await factoryContract.connect(owner)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
+    await factoryContract
+      .connect(owner)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
 
     // deposit some ETH via deposit() function
     await factoryContract
@@ -167,6 +199,7 @@ describe("Open Format", function () {
         .sub(BigNumber.from(value).div(100).mul(60))
         .sub(BigNumber.from(value2.div(4)))
         .sub(BigNumber.from(value2.div(4)))
+        .sub(mintingPrice.mul(4).sub(value.mul(4)))
     );
   });
 
@@ -176,6 +209,7 @@ describe("Open Format", function () {
     let uri = "ipfs://";
     const value = ethers.utils.parseEther("1");
     const value2 = ethers.utils.parseEther("4");
+    const mintingPrice = ethers.utils.parseEther("5");
 
     beforeEach(async () => {
       [owner, address1, address2, address3, feeHandler] =
@@ -190,10 +224,13 @@ describe("Open Format", function () {
 
       revShare = await RevShare.connect(owner).deploy();
 
-      factoryContract = await FactoryContract.connect(owner).deploy(
+      factoryContract = await FactoryContract.deploy(
         "My Track",
         "TUNE",
-        uri
+        uri,
+        100,
+        mintingPrice,
+        250
       );
 
       await factoryContract
@@ -205,10 +242,18 @@ describe("Open Format", function () {
       erc20 = await ERC20Token.connect(address1).deploy();
 
       // mint 4 NFTs
-      await factoryContract.connect(owner)["mint()"](); // 1ETH
-      await factoryContract.connect(address1)["mint()"](); // 1ETH
-      await factoryContract.connect(address1)["mint()"](); // 1ETH
-      await factoryContract.connect(address1)["mint()"](); // 1ETH
+      await factoryContract
+        .connect(owner)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(address1)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(address1)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(address1)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
 
       // Send ERC20 directly to contract
       await erc20
@@ -376,10 +421,18 @@ describe("Open Format", function () {
       .transfer(factoryContract.address, value);
 
     // mint 4 NFTs
-    await factoryContract.connect(owner)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
-    await factoryContract.connect(address1)["mint()"](); // 1ETH
+    await factoryContract
+      .connect(owner)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice }); // 1ETH
 
     // deposit some ETH via deposit() function
     await factoryContract
@@ -488,11 +541,10 @@ describe("Open Format", function () {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
     it("should mint with a sales commission", async () => {
-      const value = ethers.utils.parseEther("1");
       const PERCENTAGE_SCALE = 10000;
-      const saleCommissionPct = 1244;
+      const saleCommissionPct = 1000;
       // set Minting Price
-      await factoryContract.setMintingPrice(value);
+      // await factoryContract.setMintingPrice(value);
 
       // set Sale commission
       await factoryContract.setPrimaryCommissionPct(
@@ -503,13 +555,13 @@ describe("Open Format", function () {
       // mint NFT
       await factoryContract
         .connect(address1)
-        ["mint(address)"](address2.address, { value });
+        ["mint(address)"](address2.address, { value: mintingPrice });
 
       const newAddress2Balance = await balance(address2.address);
 
       expect(newAddress2Balance).to.be.equal(
         BigNumber.from(address2Balance).add(
-          BigNumber.from(value)
+          BigNumber.from(mintingPrice)
             .mul(saleCommissionPct)
             .div(PERCENTAGE_SCALE)
         )
@@ -519,14 +571,11 @@ describe("Open Format", function () {
     it("should handle secondary marketplace commission", async () => {
       const value = ethers.utils.parseEther("1");
       const PERCENTAGE_SCALE = 10000;
-      const saleCommissionPct = 1234;
-      const saleCommissionAmount = value
+      const saleCommissionPct = 1000;
+      const saleCommissionAmount = mintingPrice
         .mul(saleCommissionPct)
         .div(PERCENTAGE_SCALE);
       const address2Balance = await balance(address2.address);
-
-      // set Minting Price
-      await factoryContract.setMintingPrice(value);
 
       // set Sale commission
       await factoryContract.setSecondaryCommissionPct(
@@ -535,7 +584,7 @@ describe("Open Format", function () {
 
       // mint NFT
       await factoryContract["mint(address)"](address2.address, {
-        value,
+        value: mintingPrice,
       });
 
       // Set Token Sale Price
@@ -576,10 +625,13 @@ describe("Open Format", function () {
         "OpenFormat"
       );
 
-      factoryContract = await FactoryContract.connect(owner).deploy(
+      factoryContract = await FactoryContract.deploy(
         "My Track",
         "TUNE",
-        uri
+        uri,
+        100,
+        mintingPrice,
+        0
       );
     });
 
@@ -610,7 +662,7 @@ describe("Open Format", function () {
 
       // mint NFT
       await factoryContract.connect(address1)["mint()"]({
-        value,
+        value: mintingPrice,
       });
 
       // Set Token Sale Price
@@ -636,23 +688,26 @@ describe("Open Format", function () {
     it("should not send royalties if not set", async () => {
       // mint NFT
       await factoryContract["mint()"]({
-        value,
+        value: mintingPrice,
       });
 
       // Set Token Sale Price
-      await factoryContract.setTokenSalePrice(0, value);
+      await factoryContract.setTokenSalePrice(0, mintingPrice);
 
       // get owner (royalty recipient) balance before purchase
       const ownerBalance = await balance(owner.address);
 
       // Buy
       await factoryContract.connect(address2)["buy(uint256)"](0, {
-        value: value,
+        value: mintingPrice,
       });
 
       // get owner (royalty recipient) balance after purchase
       const newOwnerBalance = await balance(owner.address);
-      expect(newOwnerBalance).to.equal(ownerBalance.add(value));
+
+      expect(newOwnerBalance).to.equal(
+        ownerBalance.add(mintingPrice)
+      );
     });
   });
 });

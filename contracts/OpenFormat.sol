@@ -16,7 +16,6 @@ import "./ERC2981.sol";
 import "./interfaces/IRoyaltyManager.sol";
 import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
-import "hardhat/console.sol";
 
 contract OpenFormat is
     IOpenFormat,
@@ -27,21 +26,18 @@ contract OpenFormat is
     Ownable,
     PaymentSplitter
 {
-    address public approvedDepositExtension;
-    address public approvedRoyaltyExtension;
-
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Address for address payable;
-    using Counters for Counters.Counter;
-
-    uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
 
     mapping(uint256 => address) internal _tokenCreator;
     mapping(uint256 => uint256) internal _tokenSalePrice;
 
+    address public approvedDepositExtension;
+    address public approvedRoyaltyExtension;
     address public contractCreator;
 
+    uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
     uint256 public mintingPrice;
     uint256 public maxSupply;
     uint256 public primaryCommissionPct;
@@ -58,11 +54,29 @@ contract OpenFormat is
     constructor(
         string memory name_,
         string memory symbol_,
-        string memory metadataURI_
+        string memory metadataURI_,
+        uint256 maxSupply_,
+        uint256 mintingPrice_,
+        uint256 royaltiesPercentage_
     ) ERC721(name_, symbol_) PaymentSplitter() {
         metadataURI = metadataURI_;
+        maxSupply = maxSupply_;
+        mintingPrice = mintingPrice_;
 
-        emit Created(msg.sender, metadataURI_, symbol_, name_);
+        if (royaltiesPercentage_ > 0) {
+            _setRoyalties(address(this), royaltiesPercentage_);
+            emit RoyaltiesSet(address(this), royaltiesPercentage_);
+        }
+
+        emit Created(
+            msg.sender,
+            metadataURI_,
+            symbol_,
+            name_,
+            maxSupply,
+            mintingPrice,
+            royaltiesPercentage_
+        );
     }
 
     /***********************************|
@@ -388,6 +402,16 @@ contract OpenFormat is
         require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
         secondaryCommissionPct = amount_;
         emit SecondaryCommissionSet(amount_);
+    }
+
+    function burn(uint256 tokenId)
+        external
+        virtual
+        override
+        onlyOwner
+        whenNotPaused
+    {
+        _burn(tokenId);
     }
 
     /***********************************|
