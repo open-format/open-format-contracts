@@ -129,12 +129,12 @@ describe("Open Format", function () {
     // allocate 40% from owner => address1
     await factoryContract
       .connect(owner)
-      .allocateShares(address1.address, 40);
+      .allocateShares([address1.address], [40]);
 
     // allocate 20% from address1 => address2
     await factoryContract
       .connect(address1)
-      .allocateShares(address2.address, 20);
+      .allocateShares([address2.address], [20]);
 
     // send some ETH directly to the contract
     await address1.sendTransaction({
@@ -277,7 +277,7 @@ describe("Open Format", function () {
       // allocate 50% from owner => address1
       await factoryContract
         .connect(owner)
-        .allocateShares(address1.address, 50);
+        .allocateShares([address1.address], [50]);
     });
 
     it("should increase the ERC20 balance of the contract when depositing", async () => {
@@ -408,12 +408,12 @@ describe("Open Format", function () {
     // allocate 40% from owner => address1
     await factoryContract
       .connect(owner)
-      .allocateShares(address1.address, 40);
+      .allocateShares([address1.address], [40]);
 
     // allocate 20% from address1 => address2
     await factoryContract
       .connect(address1)
-      .allocateShares(address2.address, 20);
+      .allocateShares([address2.address], [20]);
 
     // send some ERC20 directly to the contract
     await erc20
@@ -497,28 +497,37 @@ describe("Open Format", function () {
   it("should allocate owner shares to other accounts", async () => {
     await factoryContract
       .connect(owner)
-      .allocateShares(address1.address, 20);
-
-    await factoryContract
-      .connect(owner)
-      .allocateShares(address2.address, 25);
-
-    await factoryContract
-      .connect(owner)
-      .allocateShares(address3.address, 45);
+      .allocateShares(
+        [address1.address, address2.address, address3.address],
+        [20, 25, 45]
+      );
 
     expect(await factoryContract.shares(owner.address)).to.equal(10);
   });
 
-  it("should prevent over allocation of shares", async () => {
+  it("should prevent over allocation of shares by share number", async () => {
     await expect(
       factoryContract
         .connect(owner)
-        .allocateShares(address1.address, 101)
+        .allocateShares([address1.address], [101])
     ).to.be.revertedWith(
       "PaymentSplitter: account does not have enough shares to allocate"
     );
   });
+
+  it("should prevent over allocation of shares by allocation", async () => {
+    await expect(
+      factoryContract
+        .connect(owner)
+        .allocateShares(
+          [address1.address, address2.address],
+          [50, 51]
+        )
+    ).to.be.revertedWith(
+      "PaymentSplitter: account does not have enough shares to allocate"
+    );
+  });
+
   describe("Sales commission", function () {
     it("should allow the owner to set the sales commission", async () => {
       await factoryContract.setPrimaryCommissionPct(250);

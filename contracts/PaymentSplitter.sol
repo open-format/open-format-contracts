@@ -225,22 +225,39 @@ contract PaymentSplitter is Context {
 
     /**
      * @dev Allocate a portion of your shares to a new or existing payee.
-     * @param account The address of the payee to add.
+     * @param accounts The address of the payee to add.
      * @param shares_ The number of shares owned by the payee.
      */
 
-    function allocateShares(address account, uint256 shares_) external {
+    function allocateShares(
+        address[] calldata accounts,
+        uint256[] calldata shares_
+    ) external {
         require(
-            _shares[msg.sender] > shares_,
-            "PaymentSplitter: account does not have enough shares to allocate"
+            accounts.length == shares_.length,
+            "PaymentSplitter: payees and shares length mismatch"
         );
+        require(accounts.length > 0, "PaymentSplitter: no payees");
+        for (uint256 i = 0; i < accounts.length; ) {
+            require(
+                _shares[msg.sender] >= shares_[i],
+                "PaymentSplitter: account does not have enough shares to allocate"
+            );
 
-        _shares[msg.sender] = _shares[msg.sender] - shares_;
+            _shares[msg.sender] = _shares[msg.sender] - shares_[i];
 
-        if (_shares[account] > 0) {
-            _shares[account] = _shares[account] + shares_;
-        } else {
-            _addPayee(account, shares_);
+            if (_shares[accounts[i]] > 0) {
+                _allocateShares(accounts[i], shares_[i]);
+            } else {
+                _addPayee(accounts[i], shares_[i]);
+            }
+            unchecked {
+                i++;
+            }
         }
+    }
+
+    function _allocateShares(address account, uint256 shares_) private {
+        _shares[account] = _shares[account] + shares_;
     }
 }
