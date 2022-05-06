@@ -63,12 +63,12 @@ describe("Open Format", function () {
     expect(totalSupply).to.be.equal(1);
   });
 
-  it("should only allow owner to burn token", async () => {
+  it("should only allow holder or approved to burn", async () => {
     await factoryContract["mint()"]({ value: mintingPrice });
 
     await expect(
       factoryContract.connect(address1).burn(0)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWith("OF:E-010");
   });
 
   it("should deposit ETH into contract", async () => {
@@ -390,7 +390,31 @@ describe("Open Format", function () {
         )
       );
     });
+
+    it("should allocate owner shares to other accounts", async () => {
+      await factoryContract
+        .connect(owner)
+        .allocateShares(
+          [address1.address, address2.address],
+          [30, 10]
+        );
+
+      expect(await factoryContract.shares(owner.address)).to.equal(
+        10
+      );
+    });
+
+    it("should prevent over allocation of shares by share number", async () => {
+      await expect(
+        factoryContract
+          .connect(owner)
+          .allocateShares([address1.address], [101])
+      ).to.be.revertedWith(
+        "PaymentSplitter: account does not have enough shares to allocate"
+      );
+    });
   });
+
   it("send deposit and withdraw the correct amount of ERC20 tokens", async () => {
     // Deploy token contract
     const ERC20Token = await ethers.getContractFactory("Token");
@@ -491,27 +515,6 @@ describe("Open Format", function () {
         .sub(BigNumber.from(value).div(100).mul(60))
         .sub(BigNumber.from(value2.div(4)))
         .sub(BigNumber.from(value2.div(4)))
-    );
-  });
-
-  it("should allocate owner shares to other accounts", async () => {
-    await factoryContract
-      .connect(owner)
-      .allocateShares(
-        [address1.address, address2.address, address3.address],
-        [20, 25, 45]
-      );
-
-    expect(await factoryContract.shares(owner.address)).to.equal(10);
-  });
-
-  it("should prevent over allocation of shares by share number", async () => {
-    await expect(
-      factoryContract
-        .connect(owner)
-        .allocateShares([address1.address], [101])
-    ).to.be.revertedWith(
-      "PaymentSplitter: account does not have enough shares to allocate"
     );
   });
 
@@ -717,6 +720,120 @@ describe("Open Format", function () {
       expect(newOwnerBalance).to.equal(
         ownerBalance.add(mintingPrice)
       );
+    });
+  });
+
+  describe("deposits", function () {
+    let factoryContract;
+    let revShare;
+    let uri = "ipfs://";
+    const value = ethers.utils.parseEther("1");
+    const value2 = ethers.utils.parseEther("4");
+    const mintingPrice = ethers.utils.parseEther("5");
+
+    beforeEach(async () => {
+      [owner, address1, address2, address3, feeHandler] =
+        await ethers.getSigners();
+      const FactoryContract = await ethers.getContractFactory(
+        "OpenFormat"
+      );
+
+      const RevShare = await ethers.getContractFactory(
+        "DepositExtension"
+      );
+
+      revShare = await RevShare.connect(owner).deploy();
+
+      factoryContract = await FactoryContract.deploy(
+        "My Track",
+        "TUNE",
+        uri,
+        100,
+        mintingPrice,
+        250
+      );
+
+      // Deploy token contract
+      const ERC20Token = await ethers.getContractFactory("Token");
+      erc20 = await ERC20Token.connect(address1).deploy();
+
+      // mint 4 NFTs
+      await factoryContract
+        .connect(owner)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(owner)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(owner)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+      await factoryContract
+        .connect(owner)
+        ["mint()"]({ value: mintingPrice }); // 1ETH
+    });
+
+    it("should get the single token balance from the deposit extension", async () => {
+      await factoryContract
+        .connect(owner)
+        .setApprovedDepositExtension(revShare.address);
+
+      await factoryContract
+        .connect(address1)
+        ["deposit(address)"](revShare.address, { value });
+
+      const balance = await factoryContract[
+        "getSingleTokenBalance(address,uint256)"
+      ](factoryContract.address, 0);
+
+      const totalSupply = await factoryContract.totalSupply();
+
+      expect(balance).to.be.equal(value.div(totalSupply));
+    });
+    it("should get the single token balance of an ERC20 from the deposit extension", async () => {
+      await factoryContract
+        .connect(owner)
+        .setApprovedDepositExtension(revShare.address);
+      // Send ERC20 directly to contract
+      await erc20
+        .connect(address1)
+        .transfer(factoryContract.address, value);
+
+      // approve
+      await erc20
+        .connect(address1)
+        .approve(factoryContract.address, value2);
+
+      // deposit some ETH via deposit() function
+      await factoryContract
+        .connect(address1)
+        ["deposit(address,address,uint256)"](
+          revShare.address,
+          erc20.address,
+          value2
+        );
+
+      const balance = await factoryContract[
+        "getSingleTokenBalance(address,address,uint256)"
+      ](erc20.address, factoryContract.address, 0);
+
+      const totalSupply = await factoryContract.totalSupply();
+
+      expect(balance).to.be.equal(value2.div(totalSupply));
+    });
+
+    it("should only get the single token balance if the approvedDepositExtension is valid", async () => {
+      const getBalance = factoryContract[
+        "getSingleTokenBalance(address,uint256)"
+      ](factoryContract.address, 0);
+
+      await expect(getBalance).to.be.revertedWith("OF:E-003");
+    });
+    it("should only get the single token balance (ERC20) if the approvedDepositExtension is valid", async () => {
+      const getERC20Balance = factoryContract[
+        "getSingleTokenBalance(address,address,uint256)"
+      ](erc20.address, factoryContract.address, 0);
+
+      await expect(getERC20Balance).to.be.revertedWith("OF:E-003");
     });
   });
 });
