@@ -16,8 +16,7 @@ interface IOpenFormat is IERC721 {
         string symbol,
         string name,
         uint256 maxSupply,
-        uint256 mintingPrice,
-        uint256 royaltiesPct
+        uint256 mintingPrice
     );
 
     event Sold(
@@ -95,6 +94,10 @@ interface IOpenFormat is IERC721 {
         IERC20 token,
         uint256 amount
     ) external payable;
+
+    function getMaxSupply() external view returns (uint256);
+
+    function getTotalSupply() external view returns (uint256);
 
     /***********************************|
   |     Only Token Creator/Owner      |

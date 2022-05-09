@@ -38,8 +38,8 @@ contract OpenFormat is
     address public contractCreator;
 
     uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
+    uint256 internal maxSupply;
     uint256 public mintingPrice;
-    uint256 public maxSupply;
     uint256 public primaryCommissionPct;
     uint256 public secondaryCommissionPct;
 
@@ -56,17 +56,11 @@ contract OpenFormat is
         string memory symbol_,
         string memory metadataURI_,
         uint256 maxSupply_,
-        uint256 mintingPrice_,
-        uint256 royaltiesPercentage_
+        uint256 mintingPrice_
     ) ERC721(name_, symbol_) PaymentSplitter() {
         metadataURI = metadataURI_;
         maxSupply = maxSupply_;
         mintingPrice = mintingPrice_;
-
-        if (royaltiesPercentage_ > 0) {
-            _setRoyalties(address(this), royaltiesPercentage_);
-            emit RoyaltiesSet(address(this), royaltiesPercentage_);
-        }
 
         emit Created(
             msg.sender,
@@ -74,8 +68,7 @@ contract OpenFormat is
             symbol_,
             name_,
             maxSupply,
-            mintingPrice,
-            royaltiesPercentage_
+            mintingPrice
         );
     }
 
@@ -317,6 +310,14 @@ contract OpenFormat is
 
     function getSecondaryCommissionPct() external view returns (uint256) {
         return secondaryCommissionPct;
+    }
+
+    function getMaxSupply() external view override returns (uint256) {
+        return maxSupply;
+    }
+
+    function getTotalSupply() external view override returns (uint256) {
+        return totalSupply();
     }
 
     /***********************************|
