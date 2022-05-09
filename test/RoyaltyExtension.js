@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { beforeEach } = require("mocha");
+const { BigNumber } = ethers;
 
 async function balance(address) {
   return await ethers.provider.getBalance(address);
@@ -39,17 +40,13 @@ describe("RoyaltiesExtension", function () {
       "TUNE",
       uri,
       100,
-      value,
-      250
+      value
     );
   });
 
   it("should correctly split royalties between deposit() and receive() functions", async () => {
     const PERCENTAGE_SCALE = 10000;
     const royaltyAmount = value.mul(royaltyPct).div(PERCENTAGE_SCALE);
-    const holdersAmount = royaltyAmount
-      .mul(holdersPct)
-      .div(PERCENTAGE_SCALE);
 
     //set RoyaltyManager
     await factoryContract.setApprovedRoyaltyExtension(
@@ -71,6 +68,10 @@ describe("RoyaltiesExtension", function () {
     await factoryContract["mint()"]({
       value,
     });
+    // mint NFT
+    await factoryContract["mint()"]({
+      value,
+    });
 
     // Set Token Sale Price
     await factoryContract.setTokenSalePrice(0, value);
@@ -80,16 +81,25 @@ describe("RoyaltiesExtension", function () {
       value: value,
     });
 
+    const maxSupply = await factoryContract.getMaxSupply();
+    const totalSupply = await factoryContract.getTotalSupply();
+
+    const holdersAmount = royaltyAmount
+      .mul(holdersPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
+    const primaryTokenEarnings = value.mul(totalSupply);
+
     // Primary Sale = 1ETH
     // Secondary Sale = 1ETH
     // Secondary Royalty = 50% of 1ETH = 0.5ETH
     // Secondary Holders split = 20% of 0.5ETH - 0.1ETH
     // 1ETH (primary) + 0.5ETH (secondary royalty) - 0.1ETH (secondary holders split)  = 1.6ETH;
-
     // 0.4ETH (Payment Splitter ) + 0.1ETH (NFT Holder RevShare) = 0.5ETH
     expect(
       await ethers.provider.getBalance(factoryContract.address)
-    ).to.be.equal(value.add(royaltyAmount));
+    ).to.be.equal(primaryTokenEarnings.add(royaltyAmount));
     expect(
       await revShare["getSingleTokenBalance(address,uint256)"](
         factoryContract.address,

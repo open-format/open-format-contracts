@@ -28,8 +28,7 @@ describe("DepositExtension", function () {
       "TUNE",
       uri,
       100,
-      value,
-      250
+      value
     );
 
     await factoryContract.setApprovedDepositExtension(
