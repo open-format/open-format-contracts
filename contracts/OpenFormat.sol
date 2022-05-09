@@ -9,10 +9,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IDepositManager.sol";
-import "./PaymentSplitter.sol";
 
 import "./ERC2981.sol";
+import "./interfaces/IDepositManager.sol";
 import "./interfaces/IRoyaltyManager.sol";
 import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
@@ -319,6 +318,30 @@ contract OpenFormat is
         return secondaryCommissionPct;
     }
 
+    function getSingleTokenBalance(address caller, uint256 tokenId)
+        external
+        view
+        returns (uint256)
+    {
+        require(approvedDepositExtension != address(0), "OF:E-003");
+        uint256 balance = IDepositManager(approvedDepositExtension)
+            .getSingleTokenBalance(caller, tokenId);
+
+        return balance;
+    }
+
+    function getSingleTokenBalance(
+        IERC20 token,
+        address caller,
+        uint256 tokenId
+    ) external view returns (uint256) {
+        require(approvedDepositExtension != address(0), "OF:E-003");
+        uint256 balance = IDepositManager(approvedDepositExtension)
+            .getSingleTokenBalance(token, caller, tokenId);
+
+        return balance;
+    }
+
     /***********************************|
   |    Only Owner/Creator              |
   |__________________________________*/
@@ -408,7 +431,7 @@ contract OpenFormat is
         external
         virtual
         override
-        onlyOwner
+        onlyTokenOwnerOrApproved(tokenId)
         whenNotPaused
     {
         _burn(tokenId);
