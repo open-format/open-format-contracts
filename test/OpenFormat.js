@@ -32,8 +32,7 @@ describe("Open Format", function () {
       "TUNE",
       uri,
       100,
-      mintingPrice,
-      250
+      mintingPrice
     );
 
     await factoryContract
@@ -229,8 +228,7 @@ describe("Open Format", function () {
         "TUNE",
         uri,
         100,
-        mintingPrice,
-        250
+        mintingPrice
       );
 
       await factoryContract
@@ -642,8 +640,7 @@ describe("Open Format", function () {
         "TUNE",
         uri,
         100,
-        mintingPrice,
-        0
+        mintingPrice
       );
     });
 
@@ -749,8 +746,7 @@ describe("Open Format", function () {
         "TUNE",
         uri,
         100,
-        mintingPrice,
-        250
+        mintingPrice
       );
 
       // Deploy token contract
