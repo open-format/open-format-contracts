@@ -159,7 +159,7 @@ describe("Open Format", function () {
     const contractBalance = await balance(factoryContract.address);
 
     // withdraw revShare for token id 2;
-    await factoryContract["withdraw(uint256)"](2);
+    await factoryContract.connect(address1)["withdraw(uint256)"](2);
 
     // released funds into owner wallet
     await factoryContract
@@ -173,7 +173,7 @@ describe("Open Format", function () {
     await factoryContract["release(address)"](owner.address);
 
     // withdraw revShare for token id 1;
-    await factoryContract["withdraw(uint256)"](1);
+    await factoryContract.connect(address1)["withdraw(uint256)"](1);
 
     // check correct amount has been released
     const newContractBalance = await balance(factoryContract.address);
@@ -299,20 +299,17 @@ describe("Open Format", function () {
       );
 
       // withdraw revShare for token id 1;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        1
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 1);
       // withdraw revShare for token id 2;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        2
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 2);
       // withdraw revShare for token id 3;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        3
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 3);
 
       // release funds into owner wallet
       await factoryContract["release(address,address)"](
@@ -339,20 +336,17 @@ describe("Open Format", function () {
       const address1Balance = await erc20.balanceOf(address1.address);
 
       // withdraw revShare for token id 1;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        1
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 1);
       // withdraw revShare for token id 2;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        2
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 2);
       // withdraw revShare for token id 3;
-      await factoryContract["withdraw(address,uint256)"](
-        erc20.address,
-        3
-      );
+      await factoryContract
+        .connect(address1)
+        ["withdraw(address,uint256)"](erc20.address, 3);
 
       const newAddress1Balance = await erc20.balanceOf(
         address1.address
@@ -442,10 +436,9 @@ describe("Open Format", function () {
     );
 
     // withdraw revShare for token id 2;
-    await factoryContract["withdraw(address,uint256)"](
-      erc20.address,
-      2
-    );
+    await factoryContract
+      .connect(address1)
+      ["withdraw(address,uint256)"](erc20.address, 2);
 
     // released funds into owner wallet
     await factoryContract
@@ -465,10 +458,9 @@ describe("Open Format", function () {
     );
 
     // withdraw revShare for token id 1;
-    await factoryContract["withdraw(address,uint256)"](
-      erc20.address,
-      1
-    );
+    await factoryContract
+      .connect(address1)
+      ["withdraw(address,uint256)"](erc20.address, 1);
 
     // check correct amount has been released
     const newContractBalance = await erc20.balanceOf(
