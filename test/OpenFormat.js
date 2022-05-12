@@ -73,9 +73,7 @@ describe("Open Format", function () {
   it("should deposit ETH into contract", async () => {
     const value = ethers.utils.parseEther("1");
 
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     const contractBalance = await factoryContract.provider.getBalance(
       factoryContract.address
@@ -97,9 +95,7 @@ describe("Open Format", function () {
       ["mint()"]({ value: mintingPrice });
 
     // deposit some ETH via deposit() function
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     // released funds into owner account
     const contractBalance = await factoryContract.provider.getBalance(
@@ -158,7 +154,7 @@ describe("Open Format", function () {
     // deposit some ETH via deposit() function
     await factoryContract
       .connect(address1)
-      ["deposit(address)"](revShare.address, { value: value2 });
+      ["deposit()"]({ value: value2 });
 
     const contractBalance = await balance(factoryContract.address);
 
@@ -266,11 +262,7 @@ describe("Open Format", function () {
       // deposit some ETH via deposit() function
       await factoryContract
         .connect(address1)
-        ["deposit(address,address,uint256)"](
-          revShare.address,
-          erc20.address,
-          value2
-        );
+        ["deposit(address,uint256)"](erc20.address, value2);
 
       // allocate 50% from owner => address1
       await factoryContract
@@ -459,11 +451,7 @@ describe("Open Format", function () {
     // deposit some ETH via deposit() function
     await factoryContract
       .connect(address1)
-      ["deposit(address,address,uint256)"](
-        revShare.address,
-        erc20.address,
-        value2
-      );
+      ["deposit(address,uint256)"](erc20.address, value2);
 
     const contractBalance = await erc20.balanceOf(
       factoryContract.address
@@ -773,9 +761,7 @@ describe("Open Format", function () {
         .connect(owner)
         .setApprovedDepositExtension(revShare.address);
 
-      await factoryContract
-        .connect(address1)
-        ["deposit(address)"](revShare.address, { value });
+      await factoryContract.connect(address1)["deposit()"]({ value });
 
       const balance = await factoryContract[
         "getSingleTokenBalance(address,uint256)"
@@ -802,11 +788,7 @@ describe("Open Format", function () {
       // deposit some ETH via deposit() function
       await factoryContract
         .connect(address1)
-        ["deposit(address,address,uint256)"](
-          revShare.address,
-          erc20.address,
-          value2
-        );
+        ["deposit(address,uint256)"](erc20.address, value2);
 
       const balance = await factoryContract[
         "getSingleTokenBalance(address,address,uint256)"

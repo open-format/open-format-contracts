@@ -41,9 +41,7 @@ contract RoyaltiesExtension is IRoyaltyManager {
             .mul(totalSupply);
 
         // SEND FUNDS TO NFT HOLDERS
-        IOpenFormat(msg.sender).deposit{value: amount}(
-            approvedDepositExtension
-        );
+        IOpenFormat(msg.sender).deposit{value: amount}();
 
         // SEND FUNDS TO COLLABORATORS SPLITS
         payable(msg.sender).sendValue(msg.value.sub(amount));
