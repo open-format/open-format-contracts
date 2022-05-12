@@ -82,6 +82,38 @@ describe("Open Format", function () {
     expect(contractBalance).to.equal(value);
   });
 
+  it("should only allow holder or approved to withdraw tokens", async () => {
+    // mint NFT
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    // approve address2 to withdraw
+    await factoryContract.approve(address2.address, 0);
+
+    // deposit some ETH via deposit() function
+    await factoryContract.connect(address1)["deposit()"]({ value });
+
+    // withdraw revShare for token id 0;
+    await expect(
+      factoryContract.connect(address1)["withdraw(uint256)"](0)
+    ).to.be.revertedWith("OF:E-010");
+  });
+
+  it("should allow approved to withdraw tokens", async () => {
+    // mint NFT
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    // approve address2 to withdraw
+    await factoryContract.approve(address2.address, 0);
+
+    // deposit some ETH via deposit() function
+    await factoryContract.connect(address1)["deposit()"]({ value });
+
+    // withdraw revShare for token id 0;
+    await expect(
+      factoryContract.connect(address2)["withdraw(uint256)"](0)
+    ).to.not.be.revertedWith("OF:E-010");
+  });
+
   it("send correct amount via payment splitter", async () => {
     // send some ETH to contract from address1
     address1.sendTransaction({
