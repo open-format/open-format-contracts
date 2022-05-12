@@ -108,9 +108,7 @@ describe("DepositExtension", function () {
       "getSingleTokenBalance(address,uint256)"
     ](factoryContract.address, 0);
 
-    const withdraw = await factoryContract[
-      "withdraw(address,uint256)"
-    ](revShare.address, 0);
+    const withdraw = await factoryContract["withdraw(uint256)"](0);
 
     // calculate withdraw gas
     const withdrawReceipt = await withdraw.wait();

@@ -256,12 +256,8 @@ contract OpenFormat is
         emit ERC20TotalDepositedAmountUpdated(token, msg.value);
     }
 
-    function withdraw(address contractAddress, uint256 tokenId)
-        public
-        payable
-        returns (uint256)
-    {
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+    function withdraw(uint256 tokenId) public payable returns (uint256) {
+        require(approvedDepositExtension != address(0), "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)
@@ -277,12 +273,12 @@ contract OpenFormat is
         return amount;
     }
 
-    function withdraw(
-        IERC20 token,
-        address contractAddress,
-        uint256 tokenId
-    ) public payable returns (uint256) {
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+    function withdraw(IERC20 token, uint256 tokenId)
+        public
+        payable
+        returns (uint256)
+    {
+        require(approvedDepositExtension != address(0), "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)
