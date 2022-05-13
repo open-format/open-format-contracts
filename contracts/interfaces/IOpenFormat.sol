@@ -87,13 +87,9 @@ interface IOpenFormat is IERC721 {
 
     function burn(uint256 tokenId) external;
 
-    function deposit(address contractAddress) external payable;
+    function deposit() external payable;
 
-    function deposit(
-        address contractAddress,
-        IERC20 token,
-        uint256 amount
-    ) external payable;
+    function deposit(IERC20 token, uint256 amount) external payable;
 
     function getMaxSupply() external view returns (uint256);
 

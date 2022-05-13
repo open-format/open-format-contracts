@@ -215,13 +215,8 @@ contract OpenFormat is
         return _buy(tokenId, uint256(msg.value).sub(commissionAmount));
     }
 
-    function deposit(address contractAddress)
-        external
-        payable
-        virtual
-        override
-    {
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+    function deposit() external payable virtual override {
+        require(approvedDepositExtension != address(0), "OF:E-003");
 
         uint256 total = totalSupply();
 
@@ -236,15 +231,16 @@ contract OpenFormat is
         emit TotalDepositedAmountUpdated(msg.value);
     }
 
-    function deposit(
-        address contractAddress,
-        IERC20 token,
-        uint256 amount
-    ) external payable virtual override {
+    function deposit(IERC20 token, uint256 amount)
+        external
+        payable
+        virtual
+        override
+    {
         uint256 allowance = token.allowance(msg.sender, address(this));
         uint256 total = totalSupply();
 
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+        require(approvedDepositExtension != address(0), "OF:E-003");
         require(allowance >= amount, "OF:E-004");
 
         token.transferFrom(msg.sender, address(this), amount);
@@ -260,12 +256,8 @@ contract OpenFormat is
         emit ERC20TotalDepositedAmountUpdated(token, msg.value);
     }
 
-    function withdraw(address contractAddress, uint256 tokenId)
-        public
-        payable
-        returns (uint256)
-    {
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+    function withdraw(uint256 tokenId) public payable returns (uint256) {
+        require(approvedDepositExtension != address(0), "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)
@@ -281,12 +273,12 @@ contract OpenFormat is
         return amount;
     }
 
-    function withdraw(
-        IERC20 token,
-        address contractAddress,
-        uint256 tokenId
-    ) public payable returns (uint256) {
-        require(contractAddress == approvedDepositExtension, "OF:E-003");
+    function withdraw(IERC20 token, uint256 tokenId)
+        public
+        payable
+        returns (uint256)
+    {
+        require(approvedDepositExtension != address(0), "OF:E-003");
 
         address owner = ownerOf(tokenId); // 0
         uint256 amount = IDepositManager(approvedDepositExtension)

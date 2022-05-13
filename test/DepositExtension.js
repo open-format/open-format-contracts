@@ -52,14 +52,10 @@ describe("DepositExtension", function () {
       .connect(owner)
       .approve(factoryContract.address, value);
 
-    // deposit ETH
+    // deposit ERC20
     await factoryContract
       .connect(owner)
-      ["deposit(address,address,uint256)"](
-        revShare.address,
-        erc20.address,
-        value
-      );
+      ["deposit(address,uint256)"](erc20.address, value);
 
     const ownerBalance = await revShare[
       "getSingleTokenBalance(address,address,uint256)"
@@ -80,9 +76,7 @@ describe("DepositExtension", function () {
     await factoryContract.connect(address1)["mint()"]({ value });
 
     // deposit ETH
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     const ownerBalance = await revShare[
       "getSingleTokenBalance(address,uint256)"
@@ -108,17 +102,13 @@ describe("DepositExtension", function () {
     const ownerBalance = await owner.getBalance();
 
     // deposit ETH
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     const ownerShares = await revShare[
       "getSingleTokenBalance(address,uint256)"
     ](factoryContract.address, 0);
 
-    const withdraw = await factoryContract[
-      "withdraw(address,uint256)"
-    ](revShare.address, 0);
+    const withdraw = await factoryContract["withdraw(uint256)"](0);
 
     // calculate withdraw gas
     const withdrawReceipt = await withdraw.wait();
@@ -139,17 +129,13 @@ describe("DepositExtension", function () {
     // mint one token
     await factoryContract["mint()"]({ value });
     // deposit ETH
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     // mint another token
     await factoryContract.connect(address1)["mint()"]({ value });
 
     // deposit more ETH
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
+    await factoryContract.connect(address1)["deposit()"]({ value });
 
     const newOwnerBalance = await revShare[
       "getSingleTokenBalance(address,uint256)"
@@ -172,12 +158,10 @@ describe("DepositExtension", function () {
     // mint one token
     await factoryContract["mint()"]({ value });
     // deposit ETH
+    await factoryContract.connect(address1)["deposit()"]({ value });
     await factoryContract
       .connect(address1)
-      ["deposit(address)"](revShare.address, { value });
-    await factoryContract
-      .connect(address1)
-      ["deposit(address)"](revShare.address, { value: value2 });
+      ["deposit()"]({ value: value2 });
 
     const totalReceived =
       await factoryContract.totalDepositedAmount();
