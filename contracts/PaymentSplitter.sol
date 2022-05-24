@@ -33,6 +33,7 @@ contract PaymentSplitter is Context {
         uint256 amount
     );
     event PaymentReceived(address from, uint256 amount);
+    event SharesAllocated(address from, address to, uint256 amount);
 
     uint256 private _totalReleased;
 
@@ -259,5 +260,6 @@ contract PaymentSplitter is Context {
 
     function _allocateShares(address account, uint256 shares_) private {
         _shares[account] = _shares[account] + shares_;
+        emit SharesAllocated(msg.sender, account, _shares[account]);
     }
 }
