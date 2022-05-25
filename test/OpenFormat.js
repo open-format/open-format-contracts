@@ -13,6 +13,8 @@ describe("Open Format", function () {
   let uri = "ipfs://";
   const value = ethers.utils.parseEther("1");
   const mintingPrice = ethers.utils.parseEther("5");
+  let holderPct = 5000;
+  const PERCENTAGE_SCALE = 10000;
 
   beforeEach(async () => {
     [owner, address1, address2, address3, feeHandler] =
@@ -37,7 +39,7 @@ describe("Open Format", function () {
 
     await factoryContract
       .connect(owner)
-      .setApprovedDepositExtension(revShare.address);
+      .setApprovedDepositExtension(revShare.address, holderPct);
   });
 
   it("should add revShare contract as deposit manager", async () => {
@@ -151,7 +153,7 @@ describe("Open Format", function () {
   });
 
   it("send correct amount via payment splitter 2", async () => {
-    const value2 = ethers.utils.parseEther("4.3564");
+    const value2 = ethers.utils.parseEther("1");
 
     // allocate 40% from owner => address1
     await factoryContract
@@ -183,7 +185,7 @@ describe("Open Format", function () {
       .connect(address1)
       ["mint()"]({ value: mintingPrice }); // 1ETH
 
-    // deposit some ETH via deposit() function
+    // deposit 1ETH ETH via deposit() function
     await factoryContract
       .connect(address1)
       ["deposit()"]({ value: value2 });
@@ -210,13 +212,20 @@ describe("Open Format", function () {
     // check correct amount has been released
     const newContractBalance = await balance(factoryContract.address);
 
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value2)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
     expect(newContractBalance).to.equal(
       BigNumber.from(contractBalance)
         .sub(BigNumber.from(value).div(100).mul(20))
-        .sub(BigNumber.from(value2.div(4)))
+        .sub(BigNumber.from(holdersAmount))
         .sub(BigNumber.from(value).div(100).mul(60))
-        .sub(BigNumber.from(value2.div(4)))
-        .sub(BigNumber.from(value2.div(4)))
+        .sub(BigNumber.from(holdersAmount))
+        .sub(BigNumber.from(holdersAmount))
         .sub(mintingPrice.mul(4).sub(value.mul(4)))
     );
   });
@@ -252,7 +261,7 @@ describe("Open Format", function () {
 
       await factoryContract
         .connect(owner)
-        .setApprovedDepositExtension(revShare.address);
+        .setApprovedDepositExtension(revShare.address, holderPct);
 
       // Deploy token contract
       const ERC20Token = await ethers.getContractFactory("Token");
@@ -359,8 +368,18 @@ describe("Open Format", function () {
         factoryContract.address
       );
 
+      const maxSupply = await factoryContract.getMaxSupply();
+      const totalSupply = await factoryContract.getTotalSupply();
+
+      const holdersAmount = BigNumber.from(value2)
+        .mul(holderPct)
+        .div(PERCENTAGE_SCALE)
+        .div(maxSupply);
+
       expect(newContractBalance).to.be.equal(
-        BigNumber.from(contractBalance).sub(value).sub(value2)
+        BigNumber.from(contractBalance)
+          .sub(value)
+          .sub(holdersAmount.mul(totalSupply))
       );
     });
 
@@ -384,9 +403,16 @@ describe("Open Format", function () {
         address1.address
       );
 
+      const maxSupply = await factoryContract.getMaxSupply();
+
+      const holdersAmount = BigNumber.from(value2)
+        .mul(holderPct)
+        .div(PERCENTAGE_SCALE)
+        .div(maxSupply);
+
       expect(newAddress1Balance).to.be.equal(
         BigNumber.from(address1Balance).add(
-          BigNumber.from(value2).div(4).mul(3)
+          BigNumber.from(holdersAmount).mul(3)
         )
       );
     });
@@ -499,13 +525,20 @@ describe("Open Format", function () {
       factoryContract.address
     );
 
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value2)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
     expect(newContractBalance).to.equal(
       BigNumber.from(contractBalance)
         .sub(BigNumber.from(value).div(100).mul(20))
-        .sub(BigNumber.from(value2.div(4)))
+        .sub(BigNumber.from(holdersAmount))
         .sub(BigNumber.from(value).div(100).mul(60))
-        .sub(BigNumber.from(value2.div(4)))
-        .sub(BigNumber.from(value2.div(4)))
+        .sub(BigNumber.from(holdersAmount))
+        .sub(BigNumber.from(holdersAmount))
     );
   });
 
@@ -764,7 +797,7 @@ describe("Open Format", function () {
     it("should get the single token balance from the deposit extension", async () => {
       await factoryContract
         .connect(owner)
-        .setApprovedDepositExtension(revShare.address);
+        .setApprovedDepositExtension(revShare.address, holderPct);
 
       await factoryContract.connect(address1)["deposit()"]({ value });
 
@@ -772,14 +805,20 @@ describe("Open Format", function () {
         "getSingleTokenBalance(address,uint256)"
       ](factoryContract.address, 0);
 
-      const totalSupply = await factoryContract.totalSupply();
+      const maxSupply = await factoryContract.getMaxSupply();
+      const totalSupply = await factoryContract.getTotalSupply();
 
-      expect(balance).to.be.equal(value.div(totalSupply));
+      const holdersAmount = BigNumber.from(value2)
+        .mul(holderPct)
+        .div(PERCENTAGE_SCALE)
+        .div(maxSupply);
+
+      expect(balance).to.be.equal(holdersAmount.div(totalSupply));
     });
     it("should get the single token balance of an ERC20 from the deposit extension", async () => {
       await factoryContract
         .connect(owner)
-        .setApprovedDepositExtension(revShare.address);
+        .setApprovedDepositExtension(revShare.address, holderPct);
       // Send ERC20 directly to contract
       await erc20
         .connect(address1)
@@ -799,9 +838,14 @@ describe("Open Format", function () {
         "getSingleTokenBalance(address,address,uint256)"
       ](erc20.address, factoryContract.address, 0);
 
-      const totalSupply = await factoryContract.totalSupply();
+      const maxSupply = await factoryContract.getMaxSupply();
 
-      expect(balance).to.be.equal(value2.div(totalSupply));
+      const holdersAmount = BigNumber.from(value2)
+        .mul(holderPct)
+        .div(PERCENTAGE_SCALE)
+        .div(maxSupply);
+
+      expect(balance).to.be.equal(holdersAmount);
     });
 
     it("should only get the single token balance if the approvedDepositExtension is valid", async () => {

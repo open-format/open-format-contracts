@@ -9,6 +9,8 @@ describe("DepositExtension", function () {
   let erc20;
   let uri = "ipfs://";
   const value = ethers.utils.parseEther("1");
+  let holderPct = 5000;
+  let PERCENTAGE_SCALE = 10000;
 
   beforeEach(async () => {
     const FactoryContract = await ethers.getContractFactory(
@@ -32,17 +34,19 @@ describe("DepositExtension", function () {
     );
 
     await factoryContract.setApprovedDepositExtension(
-      revShare.address
+      revShare.address,
+      holderPct
     );
   });
 
   it("should split deposited ERC20 token between NFT holders", async () => {
+    // deposit value
+    const value = ethers.utils.parseEther("1");
+
     // Deploy token contract
     const ERC20Token = await ethers.getContractFactory("Token");
     erc20 = await ERC20Token.connect(owner).deploy();
 
-    // deposit value
-    const value = ethers.utils.parseEther("1");
     // mint two tokens
     await factoryContract["mint()"]({ value });
     await factoryContract.connect(address1)["mint()"]({ value });
@@ -64,8 +68,15 @@ describe("DepositExtension", function () {
       "getSingleTokenBalance(address,address,uint256)"
     ](erc20.address, factoryContract.address, 1);
 
-    expect(ownerBalance).to.equal(BigNumber.from(value).div(2));
-    expect(address1Balance).to.equal(BigNumber.from(value).div(2));
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
+    expect(ownerBalance).to.equal(holdersAmount);
+    expect(address1Balance).to.equal(holdersAmount);
   });
 
   it("should split deposited ETH between NFT holders", async () => {
@@ -85,8 +96,15 @@ describe("DepositExtension", function () {
       "getSingleTokenBalance(address,uint256)"
     ](factoryContract.address, 1);
 
-    expect(ownerBalance).to.equal(BigNumber.from(value).div(2));
-    expect(address1Balance).to.equal(BigNumber.from(value).div(2));
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
+    expect(ownerBalance).to.equal(holdersAmount);
+    expect(address1Balance).to.equal(holdersAmount);
   });
 
   it("should send split to owner", async () => {
@@ -144,11 +162,18 @@ describe("DepositExtension", function () {
       "getSingleTokenBalance(address,uint256)"
     ](factoryContract.address, 1);
 
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
     expect(newOwnerBalance).to.equal(
-      BigNumber.from(value).add(BigNumber.from(value).div(2))
+      holdersAmount.add(holdersAmount)
     );
 
-    expect(address1Balance).to.equal(BigNumber.from(value).div(2));
+    expect(address1Balance).to.equal(holdersAmount);
   });
 
   it("Should display total received ETH", async () => {
