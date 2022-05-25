@@ -802,8 +802,8 @@ describe("Open Format", function () {
       await factoryContract.connect(address1)["deposit()"]({ value });
 
       const balance = await factoryContract[
-        "getSingleTokenBalance(address,uint256)"
-      ](factoryContract.address, 0);
+        "getSingleTokenBalance(uint256)"
+      ](0);
 
       const maxSupply = await factoryContract.getMaxSupply();
       const totalSupply = await factoryContract.getTotalSupply();
@@ -835,8 +835,8 @@ describe("Open Format", function () {
         ["deposit(address,uint256)"](erc20.address, value2);
 
       const balance = await factoryContract[
-        "getSingleTokenBalance(address,address,uint256)"
-      ](erc20.address, factoryContract.address, 0);
+        "getSingleTokenBalance(address,uint256)"
+      ](erc20.address, 0);
 
       const maxSupply = await factoryContract.getMaxSupply();
 
@@ -849,16 +849,15 @@ describe("Open Format", function () {
     });
 
     it("should only get the single token balance if the approvedDepositExtension is valid", async () => {
-      const getBalance = factoryContract[
-        "getSingleTokenBalance(address,uint256)"
-      ](factoryContract.address, 0);
+      const getBalance =
+        factoryContract["getSingleTokenBalance(uint256)"](0);
 
       await expect(getBalance).to.be.revertedWith("OF:E-003");
     });
     it("should only get the single token balance (ERC20) if the approvedDepositExtension is valid", async () => {
       const getERC20Balance = factoryContract[
-        "getSingleTokenBalance(address,address,uint256)"
-      ](erc20.address, factoryContract.address, 0);
+        "getSingleTokenBalance(address,uint256)"
+      ](erc20.address, 0);
 
       await expect(getERC20Balance).to.be.revertedWith("OF:E-003");
     });
