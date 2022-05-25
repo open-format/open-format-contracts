@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IMintingManager.sol";
 import "../interfaces/IOpenFormat.sol";
-import "hardhat/console.sol";
 
 /**
  * @dev This minting extension checks if the sender owns another NFT.
