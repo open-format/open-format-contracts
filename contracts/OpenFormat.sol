@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./ERC2981.sol";
 import "./interfaces/IDepositManager.sol";
+import "./interfaces/IMintingManager.sol";
 import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
 
@@ -33,7 +34,7 @@ contract OpenFormat is
 
     address public approvedDepositExtension;
     address public approvedRoyaltyExtension;
-    address public contractCreator;
+    address public approvedMintingExtension;
 
     uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
     uint256 internal maxSupply;
@@ -144,6 +145,10 @@ contract OpenFormat is
         returns (uint256 newTokenId)
     {
         require(msg.value >= mintingPrice, "OF:E-001");
+
+        if (approvedMintingExtension != address(0)) {
+            IMintingManager(approvedMintingExtension).mint(msg.sender);
+        }
 
         newTokenId = _mint();
     }
@@ -316,6 +321,10 @@ contract OpenFormat is
         return totalSupply();
     }
 
+    function getOwner() external view override returns (address) {
+        return owner();
+    }
+
     function getSingleTokenBalance(address caller, uint256 tokenId)
         external
         view
@@ -401,6 +410,16 @@ contract OpenFormat is
     {
         approvedRoyaltyExtension = contractAddress_;
         emit ApprovedRoyaltyExtensionSet(approvedRoyaltyExtension);
+    }
+
+    function setApprovedMintingExtension(address contractAddress_)
+        external
+        onlyOwner
+    {
+        approvedMintingExtension = contractAddress_;
+
+        IMintingManager(contractAddress_).setApprovedCaller(owner());
+        emit ApprovedMintingExtensionSet(approvedMintingExtension);
     }
 
     function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
