@@ -58,6 +58,7 @@ interface IOpenFormat is IERC721 {
     event MaxSupplySet(uint256 indexed amount);
     event ApprovedDepositExtensionSet(address indexed contractAddress);
     event ApprovedRoyaltyExtensionSet(address indexed contractAddress);
+    event ApprovedMintingExtensionSet(address indexed contractAddresss);
     event ApprovedRoyaltyExtensionCustomPctSet(uint256 indexed amount);
     event PrimaryCommissionSet(uint256 indexed amount);
     event SecondaryCommissionSet(uint256 indexed amount);
@@ -94,6 +95,8 @@ interface IOpenFormat is IERC721 {
     function getMaxSupply() external view returns (uint256);
 
     function getTotalSupply() external view returns (uint256);
+
+    function getOwner() external view returns (address);
 
     /***********************************|
   |     Only Token Creator/Owner      |
