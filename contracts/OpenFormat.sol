@@ -42,13 +42,21 @@ contract OpenFormat is
     uint256 public primaryCommissionPct;
     uint256 public secondaryCommissionPct;
 
-    // Add pause minting functionality
     bool public paused;
     string public metadataURI;
 
     /***********************************|
  |          Initialization           |
  |__________________________________*/
+
+    /**
+     * @notice Called when the contract is deployed
+     * @param name_ The name of the NFT
+     * @param symbol_ The block indentifier for the NFT e.g BAYC
+     * @param metadataURI_ The URI linking to the metadata of NFT. We highly recommend using IPFS. e.g ipfs://
+     * @param maxSupply_ The total amount of NFT that can be minted
+     * @param mintingPrice_ The cost in native token (ETH/MATIC) of minting each NFT
+     */
 
     constructor(
         string memory name_,
@@ -116,6 +124,13 @@ contract OpenFormat is
     /***********************************|
   |              Public               |
   |__________________________________*/
+
+    /**
+     * @notice Gets the creator of a given token
+     * @param tokenId The ID of the token
+     * @return tokenCreator The address of the creator of the token
+     */
+
     function creatorOf(uint256 tokenId)
         external
         view
@@ -126,6 +141,13 @@ contract OpenFormat is
         return _tokenCreator[tokenId];
     }
 
+    /**
+     * @notice Gets the token sale price for a given token
+     * @param tokenId The ID of the token
+     * @dev value returned is in wei
+     * @return salePrice The sale price of the token
+     */
+
     function getTokenSalePrice(uint256 tokenId)
         external
         view
@@ -135,6 +157,13 @@ contract OpenFormat is
     {
         return _tokenSalePrice[tokenId];
     }
+
+    /**
+     * @notice Mints a NFT
+     * @dev This is an overloaded function
+     * @dev An approved minting extension can be used before minting is approved
+     * @return newTokenId The ID of the minted token
+     */
 
     function mint()
         external
@@ -152,6 +181,14 @@ contract OpenFormat is
 
         newTokenId = _mint();
     }
+
+    /**
+     * @notice Mints a NFT with a primary commission
+     * @dev This is an overloaded function
+     * @dev If a primary commission percentage is set, a percentage of the minting cost will go to the commission address pass in via the params.
+     * @param commissionAddress The address that receives a percentage of the minting cost.
+     * @return newTokenId The ID of the minted token
+     */
 
     function mint(address commissionAddress)
         external
@@ -181,21 +218,37 @@ contract OpenFormat is
         newTokenId = _mint();
     }
 
+    /**
+     * @notice Initialises a secondary sale
+     * @param tokenId The token ID of the token which is being sold
+     * @dev This is an overloaded function
+     * @return bool true if its successful
+     */
+
     function buy(uint256 tokenId)
         external
         payable
         virtual
         override
+        whenNotPaused
         returns (bool)
     {
         return _buy(tokenId, msg.value);
     }
+
+    /**
+     * @notice Initialises a secondary sale with a secondary commission
+     * @param tokenId The token ID of the token which is being sold
+     * @dev This is an overloaded function
+     * @return bool true if its successful
+     */
 
     function buy(uint256 tokenId, address commissionAddress)
         external
         payable
         virtual
         override
+        whenNotPaused
         returns (bool)
     {
         require(commissionAddress != address(0), "OF:E-002");
@@ -219,21 +272,33 @@ contract OpenFormat is
         return _buy(tokenId, uint256(msg.value).sub(commissionAmount));
     }
 
+    /**
+     * @notice This function handles depositing native token (ETH/MATIC) to into the contract via the approved deposit extension
+     * @dev This is an overloaded function
+     * @dev An approved deposit extension must be set
+     */
+
     function deposit() external payable virtual override {
         require(approvedDepositExtension != address(0), "OF:E-003");
 
-        uint256 total = totalSupply();
+        uint256 totalSupply = totalSupply();
 
         IDepositManager(approvedDepositExtension).calculateSplitETH(
-            // Deposit amount
             msg.value,
-            // token number of NFTs
-            total
+            totalSupply
         );
         _totalDepositedAmount += msg.value;
 
         emit TotalDepositedAmountUpdated(msg.value);
     }
+
+    /**
+     * @notice This function handles depositing ERC20 to into the contract via the approved deposit extension
+     * @param token The contract address of the ERC20 token
+     * @param amount The amount of the ERC20 token in Wei you wish to deposit
+     * @dev This is an overloaded function
+     * @dev An approved deposit extension must be set
+     */
 
     function deposit(IERC20 token, uint256 amount)
         external
@@ -260,6 +325,14 @@ contract OpenFormat is
         emit ERC20TotalDepositedAmountUpdated(token, msg.value);
     }
 
+    /**
+     * @notice This function handles withdrawing the native token (ETH/MATIC) balance of a single token via the approved deposit extension
+     * @param tokenId The tokenId you want to withdraw from
+     * @dev This is an overloaded function
+     * @dev An approved deposit extension must be set
+     * @dev You can only withdraw the entire balance
+     */
+
     function withdraw(uint256 tokenId)
         public
         payable
@@ -281,6 +354,15 @@ contract OpenFormat is
         emit TokenBalanceWithdrawn(tokenId, amount);
         return amount;
     }
+
+    /**
+     * @notice This function handles withdrawing ERC20 balances of a single token via the approved deposit extension
+     * @param token The contract address of the ERC20 token
+     * @param tokenId The tokenId you want to withdraw from
+     * @dev This is an overloaded function
+     * @dev An approved deposit extension must be set
+     * @dev You can only withdraw the entire balance of single ERC20 token
+     */
 
     function withdraw(IERC20 token, uint256 tokenId)
         public
@@ -305,46 +387,86 @@ contract OpenFormat is
         return amount;
     }
 
+    /**
+     * @notice Get the primary commission percent
+     * @return percentage The set primary commission percentage
+     */
+
     function getPrimaryCommissionPct() external view returns (uint256) {
         return primaryCommissionPct;
     }
+
+    /**
+     * @notice Get the primary commission percent
+     * @return percentage The set primary commission percentage
+     */
 
     function getSecondaryCommissionPct() external view returns (uint256) {
         return secondaryCommissionPct;
     }
 
+    /**
+     * @notice Get the max supply of token that can be minted
+     * @return maxSupply The max supply of tokens
+     */
+
     function getMaxSupply() external view override returns (uint256) {
         return maxSupply;
     }
+
+    /**
+     * @notice Get the amount of token that have been minted
+     * @return totalSupply The amount of tokens that have been minted
+     */
 
     function getTotalSupply() external view override returns (uint256) {
         return totalSupply();
     }
 
+    /**
+     * @notice Get the owner of the contact
+     * @return maxSupply An address of the owner of the contract
+     */
+
     function getOwner() external view override returns (address) {
         return owner();
     }
 
-    function getSingleTokenBalance(address caller, uint256 tokenId)
+    /**
+     * @notice Get the token balance in Ether of a single token
+     * @dev An approved deposit extension must be set
+     * @param tokenId The token id
+     * @return tokenBalance The token balance in Ether of a single token
+     */
+
+    function getSingleTokenBalance(uint256 tokenId)
         external
         view
         returns (uint256)
     {
         require(approvedDepositExtension != address(0), "OF:E-003");
         uint256 balance = IDepositManager(approvedDepositExtension)
-            .getSingleTokenBalance(caller, tokenId);
+            .getSingleTokenBalance(address(this), tokenId);
 
         return balance;
     }
 
-    function getSingleTokenBalance(
-        IERC20 token,
-        address caller,
-        uint256 tokenId
-    ) external view returns (uint256) {
+    /**
+     * @notice Get the ERC20 token balance of a single token
+     * @dev An approved deposit extension must be set
+     * @param token The contract address of the ERC20 token
+     * @param tokenId The token id
+     * @return tokenBalance The token balance in Ether of a single token
+     */
+
+    function getSingleTokenBalance(IERC20 token, uint256 tokenId)
+        external
+        view
+        returns (uint256)
+    {
         require(approvedDepositExtension != address(0), "OF:E-003");
         uint256 balance = IDepositManager(approvedDepositExtension)
-            .getSingleTokenBalance(token, caller, tokenId);
+            .getSingleTokenBalance(token, address(this), tokenId);
 
         return balance;
     }
@@ -352,87 +474,163 @@ contract OpenFormat is
     /***********************************|
   |    Only Owner/Creator              |
   |__________________________________*/
-    function setMintingPrice(uint256 _amount)
+    /**
+     * @notice Sets the minting price
+     * @param amount The amount in Wei of the new minting price
+     * @dev set to 0 for minting to be be free.
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setMintingPrice(uint256 amount)
         external
         virtual
         override
         onlyOwner
     {
-        mintingPrice = _amount;
-        emit MintingPriceSet(_amount);
+        mintingPrice = amount;
+        emit MintingPriceSet(amount);
     }
 
-    function setRoyalties(address royaltyReceiver, uint256 _royaltiesPct)
+    /**
+     * @notice Sets the royalties receiver and percentage of any secondary sales
+     * @param royaltyReceiver The address of the royalty receiver
+     * @param royaltiesPct the percentage of the royalties
+     * @dev If using a royalty extension set the royaltyReceiver to the contract address of the approved royalty extension
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setRoyalties(address royaltyReceiver, uint256 royaltiesPct)
         external
         virtual
         override
         onlyOwner
     {
-        require(_royaltiesPct > 0, "OF:E-004");
+        require(royaltiesPct > 0, "OF:E-004");
         require(royaltyReceiver != address(0), "OF:E-005");
 
-        _setRoyalties(royaltyReceiver, _royaltiesPct);
-        emit RoyaltiesSet(address(this), _royaltiesPct);
+        _setRoyalties(royaltyReceiver, royaltiesPct);
+        emit RoyaltiesSet(royaltyReceiver, royaltiesPct);
     }
 
-    function setMaxSupply(uint256 _amount) external virtual override onlyOwner {
-        maxSupply = _amount;
-        emit MaxSupplySet(_amount);
+    /**
+     * @notice Sets the max supply of tokens that can be minted
+     * @param amount The total amount of tokens that can be minted
+     * @dev amount can't be more than max uint256
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setMaxSupply(uint256 amount) external virtual override onlyOwner {
+        maxSupply = amount;
+        emit MaxSupplySet(amount);
     }
 
-    function setTokenSalePrice(uint256 tokenId, uint256 _salePrice)
+    /**
+     * @notice Sets the secondary sale price for a given token
+     * @param tokenId The token Id
+     * @param salePrice The new sale price in Wei of the token
+     * @dev salePrice must be greater than 0
+     * @dev This function can only be called by the token owner or approved address
+     */
+
+    function setTokenSalePrice(uint256 tokenId, uint256 salePrice)
         external
         virtual
         override
         whenNotPaused
         onlyTokenOwnerOrApproved(tokenId)
     {
-        _setTokenSalePrice(tokenId, _salePrice);
+        _setTokenSalePrice(tokenId, salePrice);
     }
+
+    /**
+     * @notice Toggles the paused state
+     * @dev When paused is true certain function will be reverted. Use for timed drops, emergencies or damange prevention
+     * @dev This function can only be called by the owner of the contract
+     */
 
     function togglePausedState() external virtual onlyOwner {
         paused = !paused;
         emit PausedStateSet(!paused);
     }
 
+    /**
+     * @notice Sets the approved deposit extension
+     * @param contractAddress The contract address of the deposit extension
+     * @param holderPct The percentage of a deposit that each token will receive
+     * @dev holderPct e.g 2.5% = 250
+     * @dev This function can only be called by the owner of the contract
+     */
+
     function setApprovedDepositExtension(
-        address contractAddress_,
-        uint256 holderPct_
+        address contractAddress,
+        uint256 holderPct
     ) public onlyOwner {
-        approvedDepositExtension = contractAddress_;
-        IDepositManager(contractAddress_).setApprovedCaller(holderPct_);
+        approvedDepositExtension = contractAddress;
+        IDepositManager(contractAddress).setApprovedCaller(holderPct);
         emit ApprovedDepositExtensionSet(approvedDepositExtension);
     }
 
-    function setApprovedRoyaltyExtension(address contractAddress_)
+    /**
+     * @notice Sets the approved royalty extension
+     * @param contractAddress The contract address of the royalty extension
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setApprovedRoyaltyExtension(address contractAddress)
         public
         onlyOwner
     {
-        approvedRoyaltyExtension = contractAddress_;
+        approvedRoyaltyExtension = contractAddress;
         emit ApprovedRoyaltyExtensionSet(approvedRoyaltyExtension);
     }
 
-    function setApprovedMintingExtension(address contractAddress_)
+    /**
+     * @notice Sets the approved minting extension
+     * @param contractAddress The contract address of the minting extension
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setApprovedMintingExtension(address contractAddress)
         external
         onlyOwner
     {
-        approvedMintingExtension = contractAddress_;
+        approvedMintingExtension = contractAddress;
 
-        IMintingManager(contractAddress_).setApprovedCaller(owner());
+        IMintingManager(contractAddress).setApprovedCaller(owner());
         emit ApprovedMintingExtensionSet(approvedMintingExtension);
     }
 
-    function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
-        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
-        primaryCommissionPct = amount_;
-        emit PrimaryCommissionSet(amount_);
+    /**
+     * @notice Sets the primary commission for the contract
+     * @param amount The percentage paid to the commission address when the mint with commission function is called
+     * @dev amount e.g 2.5% = 250
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setPrimaryCommissionPct(uint256 amount) public onlyOwner {
+        require(amount <= PERCENTAGE_SCALE, "OF:E-006");
+        primaryCommissionPct = amount;
+        emit PrimaryCommissionSet(amount);
     }
 
-    function setSecondaryCommissionPct(uint256 amount_) public onlyOwner {
-        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
-        secondaryCommissionPct = amount_;
-        emit SecondaryCommissionSet(amount_);
+    /**
+     * @notice Sets the secondary commission for the contract
+     * @param amount The percentage paid to the commission address when the buy with commission function is called
+     * @dev amount e.g 2.5% = 250
+     * @dev This function can only be called by the owner of the contract
+     */
+
+    function setSecondaryCommissionPct(uint256 amount) public onlyOwner {
+        require(amount <= PERCENTAGE_SCALE, "OF:E-006");
+        secondaryCommissionPct = amount;
+        emit SecondaryCommissionSet(amount);
     }
+
+    /**
+     * @notice Burns a token
+     * @param tokenId The token Id that will be burnt
+     * @dev This function can only be called by the token owner or approved address
+     */
 
     function burn(uint256 tokenId)
         external
@@ -513,7 +711,6 @@ contract OpenFormat is
         virtual
         returns (uint256 value)
     {
-        // return (totalValue / 100) * pct;
         return totalValue.mul(pct).div(PERCENTAGE_SCALE);
     }
 
