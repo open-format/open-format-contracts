@@ -118,7 +118,7 @@ describe("Open Format", function () {
 
   it("send correct amount via payment splitter", async () => {
     // send some ETH to contract from address1
-    address1.sendTransaction({
+    await address1.sendTransaction({
       to: factoryContract.address,
       value,
     });
@@ -150,6 +150,55 @@ describe("Open Format", function () {
         .sub(BigNumber.from(value).div(100).mul(100))
         .sub(mintingPrice)
     );
+  });
+
+  it("send correct amount via payment splitter (shareWithHolders)", async () => {
+    await factoryContract.setShareIncomeWithHolders(true);
+
+    // send some ETH to contract from address1
+    await address1.sendTransaction({
+      to: factoryContract.address,
+      value,
+    });
+
+    // mint NFT
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice });
+
+    // deposit some ETH via deposit() function
+    await factoryContract.connect(address1)["deposit()"]({ value });
+
+    // released funds into owner account
+    const contractBalance = await factoryContract.provider.getBalance(
+      factoryContract.address
+    );
+    await factoryContract
+      .connect(address1)
+      ["release(address)"](owner.address);
+
+    // check correct amount has been released
+    const newContractBalance =
+      await factoryContract.provider.getBalance(
+        factoryContract.address
+      );
+
+    const tokenBalance0 = await factoryContract[
+      "getSingleTokenBalance(uint256)"
+    ](0);
+
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
+    expect(newContractBalance).to.equal(
+      BigNumber.from(contractBalance).sub(mintingPrice)
+    );
+
+    expect(tokenBalance0).to.equal(holdersAmount);
   });
 
   it("send correct amount via payment splitter 2", async () => {
@@ -802,8 +851,8 @@ describe("Open Format", function () {
       await factoryContract.connect(address1)["deposit()"]({ value });
 
       const balance = await factoryContract[
-        "getSingleTokenBalance(address,uint256)"
-      ](factoryContract.address, 0);
+        "getSingleTokenBalance(uint256)"
+      ](0);
 
       const maxSupply = await factoryContract.getMaxSupply();
       const totalSupply = await factoryContract.getTotalSupply();
@@ -835,8 +884,8 @@ describe("Open Format", function () {
         ["deposit(address,uint256)"](erc20.address, value2);
 
       const balance = await factoryContract[
-        "getSingleTokenBalance(address,address,uint256)"
-      ](erc20.address, factoryContract.address, 0);
+        "getSingleTokenBalance(address,uint256)"
+      ](erc20.address, 0);
 
       const maxSupply = await factoryContract.getMaxSupply();
 
@@ -849,16 +898,15 @@ describe("Open Format", function () {
     });
 
     it("should only get the single token balance if the approvedDepositExtension is valid", async () => {
-      const getBalance = factoryContract[
-        "getSingleTokenBalance(address,uint256)"
-      ](factoryContract.address, 0);
+      const getBalance =
+        factoryContract["getSingleTokenBalance(uint256)"](0);
 
       await expect(getBalance).to.be.revertedWith("OF:E-003");
     });
     it("should only get the single token balance (ERC20) if the approvedDepositExtension is valid", async () => {
       const getERC20Balance = factoryContract[
-        "getSingleTokenBalance(address,address,uint256)"
-      ](erc20.address, factoryContract.address, 0);
+        "getSingleTokenBalance(address,uint256)"
+      ](erc20.address, 0);
 
       await expect(getERC20Balance).to.be.revertedWith("OF:E-003");
     });
