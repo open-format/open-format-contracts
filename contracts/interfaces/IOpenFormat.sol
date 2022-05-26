@@ -50,6 +50,7 @@ interface IOpenFormat is IERC721 {
     );
 
     event PausedStateSet(bool isPaused);
+    event ShareIncomeWithHoldersSet(bool state);
     event SalePriceSet(uint256 indexed tokenId, uint256 salePrice);
     event Minted(uint256 indexed newTokenId, address indexed owner);
     event RoyaltiesSet(address indexed receiver, uint256 indexed percentage);

@@ -62,19 +62,6 @@ contract PaymentSplitter is Context {
     }
 
     /**
-     * @dev The Ether received will be logged with {PaymentReceived} events. Note that these events are not fully
-     * reliable: it's possible for a contract to receive Ether without triggering this function. This only affects the
-     * reliability of the events, and not the actual splitting of Ether.
-     *
-     * To learn more about this see the Solidity documentation for
-     * https://solidity.readthedocs.io/en/latest/contracts.html#fallback-function[fallback
-     * functions].
-     */
-    receive() external payable virtual {
-        emit PaymentReceived(_msgSender(), msg.value);
-    }
-
-    /**
      * @dev Getter for the total amount of Ether already released.
      */
     function totalReleased() public view returns (uint256) {

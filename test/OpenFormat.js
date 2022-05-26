@@ -118,7 +118,7 @@ describe("Open Format", function () {
 
   it("send correct amount via payment splitter", async () => {
     // send some ETH to contract from address1
-    address1.sendTransaction({
+    await address1.sendTransaction({
       to: factoryContract.address,
       value,
     });
@@ -150,6 +150,61 @@ describe("Open Format", function () {
         .sub(BigNumber.from(value).div(100).mul(100))
         .sub(mintingPrice)
     );
+  });
+
+  it("send correct amount via payment splitter (shareWithHolders)", async () => {
+    await factoryContract.setShareIncomeWithHolders(true);
+
+    // send some ETH to contract from address1
+    await address1.sendTransaction({
+      to: factoryContract.address,
+      value,
+    });
+
+    // mint NFT
+    await factoryContract
+      .connect(address1)
+      ["mint()"]({ value: mintingPrice });
+
+    // deposit some ETH via deposit() function
+    await factoryContract.connect(address1)["deposit()"]({ value });
+
+    // released funds into owner account
+    const contractBalance = await factoryContract.provider.getBalance(
+      factoryContract.address
+    );
+    await factoryContract
+      .connect(address1)
+      ["release(address)"](owner.address);
+
+    // check correct amount has been released
+    const newContractBalance =
+      await factoryContract.provider.getBalance(
+        factoryContract.address
+      );
+
+    const tokenBalance0 = await factoryContract[
+      "getSingleTokenBalance(uint256)"
+    ](0);
+
+    console.log({
+      tokenBalance0,
+      contractBalance,
+      newContractBalance,
+    });
+
+    const maxSupply = await factoryContract.getMaxSupply();
+
+    const holdersAmount = BigNumber.from(value)
+      .mul(holderPct)
+      .div(PERCENTAGE_SCALE)
+      .div(maxSupply);
+
+    expect(newContractBalance).to.equal(
+      BigNumber.from(contractBalance).sub(mintingPrice)
+    );
+
+    expect(tokenBalance0).to.equal(holdersAmount);
   });
 
   it("send correct amount via payment splitter 2", async () => {
