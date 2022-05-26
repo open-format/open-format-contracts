@@ -400,7 +400,7 @@ contract OpenFormat is
         uint256 holderPct_
     ) public onlyOwner {
         approvedDepositExtension = contractAddress_;
-        IDepositManager(contractAddress_).setApprovedCaller(holderPct_);
+        IDepositManager(contractAddress_).setHolderPct(holderPct_);
         emit ApprovedDepositExtensionSet(approvedDepositExtension);
     }
 

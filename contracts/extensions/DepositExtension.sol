@@ -13,12 +13,10 @@ contract DepositExtension {
     mapping(address => mapping(IERC20 => mapping(uint256 => uint256))) erc20Balances;
     mapping(address => uint256) public totalReceived;
     mapping(address => mapping(IERC20 => uint256)) public erc20TotalReceived;
-    mapping(address => bool) public approvedCallers;
     mapping(address => uint256) public holderPct;
     uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
 
-    function setApprovedCaller(uint256 holderPct_) public {
-        approvedCallers[msg.sender] = true;
+    function setHolderPct(uint256 holderPct_) external {
         holderPct[msg.sender] = holderPct_;
     }
 
@@ -27,7 +25,7 @@ contract DepositExtension {
         uint256 amount,
         // Amount of NFT tokens
         uint256 totalSupply
-    ) external onlyApprovedCaller {
+    ) external {
         uint256 maxSupply = IOpenFormat(msg.sender).getMaxSupply();
 
         uint256 holderAmount = amount
@@ -50,7 +48,7 @@ contract DepositExtension {
         uint256 amount,
         // Amount of NFT tokens
         uint256 totalSupply
-    ) external onlyApprovedCaller {
+    ) external {
         uint256 maxSupply = IOpenFormat(msg.sender).getMaxSupply();
 
         uint256 holderAmount = amount
@@ -67,10 +65,7 @@ contract DepositExtension {
         }
     }
 
-    function updateSplitBalanceETH(uint256 amount, uint256 tokenId)
-        public
-        onlyApprovedCaller
-    {
+    function updateSplitBalanceETH(uint256 amount, uint256 tokenId) public {
         balances[msg.sender][tokenId] = amount;
     }
 
@@ -78,7 +73,7 @@ contract DepositExtension {
         IERC20 token,
         uint256 amount,
         uint256 tokenId
-    ) public onlyApprovedCaller {
+    ) public {
         erc20Balances[msg.sender][token][tokenId] = amount;
     }
 
@@ -104,10 +99,5 @@ contract DepositExtension {
         uint256 tokenId
     ) external view returns (uint256) {
         return erc20Balances[caller][token][tokenId];
-    }
-
-    modifier onlyApprovedCaller() {
-        require(approvedCallers[msg.sender], "DE:E-001");
-        _;
     }
 }

@@ -193,18 +193,4 @@ describe("DepositExtension", function () {
 
     expect(totalReceived).to.equal(BigNumber.from(value).add(value2));
   });
-
-  it("should only let approvedCaller call calculateSplit()", async () => {
-    const amount = "1000000000000000000";
-    await expect(
-      revShare.calculateSplitETH(amount, 5)
-    ).to.be.revertedWith("DE:E-001");
-  });
-
-  it("should only let approvedCaller call updateSplitBalance()", async () => {
-    const amount = "1000000000000000000";
-    await expect(
-      revShare.calculateSplitETH(amount, 0)
-    ).to.be.revertedWith("DE:E-001");
-  });
 });
