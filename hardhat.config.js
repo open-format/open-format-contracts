@@ -22,6 +22,9 @@ task(
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
+  docgen: {
+    pages: "files",
+  },
   solidity: {
     compilers: [
       {
