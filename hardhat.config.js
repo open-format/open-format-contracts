@@ -45,10 +45,17 @@ module.exports = {
     coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
   },
   networks: {
+    mumbai: {
+      url: "https://polygon-mumbai.infura.io/v3/b4f2a920d0a3498295cde60bd6c07770",
+      accounts: [
+        "6f7fca2bcff250c9250115b57eeb7b39644ca1ffd72fe3c8914715b0bc5a3db0",
+      ],
+      gasPrice: 8000000000,
+    },
     hardhat: {
       blockGasLimit: 200000000,
       allowUnlimitedContractSize: true,
-      gasPrice: 1e9,
+      gasPrice: 8000000000,
     },
   },
 };
