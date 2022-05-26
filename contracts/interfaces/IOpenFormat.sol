@@ -59,7 +59,6 @@ interface IOpenFormat is IERC721 {
     event ApprovedDepositExtensionSet(address indexed contractAddress);
     event ApprovedRoyaltyExtensionSet(address indexed contractAddress);
     event ApprovedMintingExtensionSet(address indexed contractAddresss);
-    event ApprovedRoyaltyExtensionCustomPctSet(uint256 indexed amount);
     event PrimaryCommissionSet(uint256 indexed amount);
     event SecondaryCommissionSet(uint256 indexed amount);
     event RoyaltyPaid(address indexed recipient, uint256 indexed amount);

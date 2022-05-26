@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../interfaces/IOpenFormat.sol";
 
 contract DepositExtension {
     using SafeMath for uint256;
@@ -12,10 +13,11 @@ contract DepositExtension {
     mapping(address => mapping(IERC20 => mapping(uint256 => uint256))) erc20Balances;
     mapping(address => uint256) public totalReceived;
     mapping(address => mapping(IERC20 => uint256)) public erc20TotalReceived;
-    mapping(address => bool) public _approvedCallers;
+    mapping(address => uint256) public holderPct;
+    uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
 
-    function setApprovedCaller() public {
-        _approvedCallers[msg.sender] = true;
+    function setHolderPct(uint256 holderPct_) external {
+        holderPct[msg.sender] = holderPct_;
     }
 
     function calculateSplitETH(
@@ -23,13 +25,17 @@ contract DepositExtension {
         uint256 amount,
         // Amount of NFT tokens
         uint256 totalSupply
-    ) external onlyApprovedCaller {
+    ) external {
+        uint256 maxSupply = IOpenFormat(msg.sender).getMaxSupply();
+
+        uint256 holderAmount = amount
+            .mul(holderPct[msg.sender])
+            .div(PERCENTAGE_SCALE)
+            .div(maxSupply);
+
         for (uint256 i = 0; i < totalSupply; ) {
             uint256 currentBalance = balances[msg.sender][i];
-            updateSplitBalanceETH(
-                currentBalance.add(amount.div(totalSupply)),
-                i
-            );
+            updateSplitBalanceETH(currentBalance.add(holderAmount), i);
             unchecked {
                 i++;
             }
@@ -42,24 +48,24 @@ contract DepositExtension {
         uint256 amount,
         // Amount of NFT tokens
         uint256 totalSupply
-    ) external onlyApprovedCaller {
+    ) external {
+        uint256 maxSupply = IOpenFormat(msg.sender).getMaxSupply();
+
+        uint256 holderAmount = amount
+            .mul(holderPct[msg.sender])
+            .div(PERCENTAGE_SCALE)
+            .div(maxSupply);
+
         for (uint256 i = 0; i < totalSupply; ) {
             uint256 currentBalance = erc20Balances[msg.sender][token][i];
-            updateSplitBalanceERC20(
-                token,
-                currentBalance.add(amount.div(totalSupply)),
-                i
-            );
+            updateSplitBalanceERC20(token, currentBalance.add(holderAmount), i);
             unchecked {
                 i++;
             }
         }
     }
 
-    function updateSplitBalanceETH(uint256 amount, uint256 tokenId)
-        public
-        onlyApprovedCaller
-    {
+    function updateSplitBalanceETH(uint256 amount, uint256 tokenId) public {
         balances[msg.sender][tokenId] = amount;
     }
 
@@ -67,7 +73,7 @@ contract DepositExtension {
         IERC20 token,
         uint256 amount,
         uint256 tokenId
-    ) public onlyApprovedCaller {
+    ) public {
         erc20Balances[msg.sender][token][tokenId] = amount;
     }
 
@@ -93,10 +99,5 @@ contract DepositExtension {
         uint256 tokenId
     ) external view returns (uint256) {
         return erc20Balances[caller][token][tokenId];
-    }
-
-    modifier onlyApprovedCaller() {
-        require(_approvedCallers[msg.sender], "DE:E-001");
-        _;
     }
 }

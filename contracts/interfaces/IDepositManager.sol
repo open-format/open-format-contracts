@@ -22,7 +22,7 @@ interface IDepositManager {
         uint256 tokenId
     ) external;
 
-    function setApprovedCaller() external;
+    function setHolderPct(uint256 holderPct_) external;
 
     function getTotalReceived(address) external view returns (uint256);
 

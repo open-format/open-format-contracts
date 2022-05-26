@@ -11,10 +11,10 @@ describe("RoyaltiesExtension", function () {
   let factoryContract;
   let royalties;
   let royaltyPct = 5000;
-  let holdersPct = 2000;
   let revShare;
   let uri = "ipfs://";
   const value = ethers.utils.parseEther("1");
+  let depositHolderPct = 5000;
 
   beforeEach(async () => {
     const FactoryContract = await ethers.getContractFactory(
@@ -55,12 +55,10 @@ describe("RoyaltiesExtension", function () {
 
     // set DepositManager
     await factoryContract.setApprovedDepositExtension(
-      revShare.address
+      revShare.address,
+      depositHolderPct
     );
-    // set RoyaltyManager custom percent
-    await factoryContract.setApprovedRoyaltyExtensionCustomPct(
-      holdersPct
-    );
+
     // set Royalties percentage to 50%
     await factoryContract.setRoyalties(royalties.address, royaltyPct);
 
@@ -84,10 +82,11 @@ describe("RoyaltiesExtension", function () {
     const maxSupply = await factoryContract.getMaxSupply();
     const totalSupply = await factoryContract.getTotalSupply();
 
-    const holdersAmount = royaltyAmount
-      .mul(holdersPct)
+    const depositHoldersPct = value
+      .mul(depositHolderPct)
       .div(PERCENTAGE_SCALE)
-      .div(maxSupply);
+      .div(maxSupply)
+      .div(totalSupply);
 
     const primaryTokenEarnings = value.mul(totalSupply);
 
@@ -105,13 +104,7 @@ describe("RoyaltiesExtension", function () {
         factoryContract.address,
         0
       )
-    ).to.be.equal(holdersAmount);
-  });
-
-  it("should revert if royaltyManager is not set", async () => {
-    await expect(
-      factoryContract.setApprovedRoyaltyExtensionCustomPct(holdersPct)
-    ).to.be.revertedWith("OF:E-007");
+    ).to.be.equal(depositHoldersPct);
   });
 
   it("should not use royaltyManager if not set", async () => {

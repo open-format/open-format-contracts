@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./ERC2981.sol";
 import "./interfaces/IDepositManager.sol";
-import "./interfaces/IRoyaltyManager.sol";
 import "./interfaces/IMintingManager.sol";
 import "./interfaces/IOpenFormat.sol";
 import "./PaymentSplitter.sol";
@@ -396,12 +395,12 @@ contract OpenFormat is
         emit PausedStateSet(!paused);
     }
 
-    function setApprovedDepositExtension(address contractAddress_)
-        public
-        onlyOwner
-    {
+    function setApprovedDepositExtension(
+        address contractAddress_,
+        uint256 holderPct_
+    ) public onlyOwner {
         approvedDepositExtension = contractAddress_;
-        IDepositManager(contractAddress_).setApprovedCaller();
+        IDepositManager(contractAddress_).setHolderPct(holderPct_);
         emit ApprovedDepositExtensionSet(approvedDepositExtension);
     }
 
@@ -421,16 +420,6 @@ contract OpenFormat is
 
         IMintingManager(contractAddress_).setApprovedCaller(owner());
         emit ApprovedMintingExtensionSet(approvedMintingExtension);
-    }
-
-    function setApprovedRoyaltyExtensionCustomPct(uint256 amount_)
-        external
-        onlyOwner
-    {
-        require(amount_ <= PERCENTAGE_SCALE, "OF:E-006");
-        require(approvedRoyaltyExtension != address(0), "OF:E-007");
-        IRoyaltyManager(approvedRoyaltyExtension).setCustomRoyaltyPct(amount_);
-        emit ApprovedRoyaltyExtensionCustomPctSet(amount_);
     }
 
     function setPrimaryCommissionPct(uint256 amount_) public onlyOwner {
