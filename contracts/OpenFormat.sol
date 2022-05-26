@@ -500,7 +500,7 @@ contract OpenFormat is
      * @notice Setter for the royalties using ERC2981.
      * @param royaltyReceiver The address of the royalty receiver.
      * @param royaltiesPct The percentage of the royalties.
-     * @dev If using a royalty extension set the royaltyReceiver to the contract address of the approved royalty extension.
+     * @dev royaltiesPct e.g 2.5% = 250.
      * @dev This function can only be called by the owner of the contract.
      */
 
