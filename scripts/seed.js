@@ -10,22 +10,6 @@ async function main() {
       maxSupply: 100,
       mintingPrice: hre.ethers.utils.parseEther("1"),
     },
-    // {
-    //   name: "Dogs",
-    //   symbol: "DOGGO",
-    //   ipfsUrl:
-    //     "ipfs://bafyreiflupn3zziegi4fm56uhoc3yesv2jiv5ovcj23b2qq3xqcu4kq46m/metadata.json",
-    //   maxSupply: 30,
-    //   mintingPrice: hre.ethers.utils.parseEther("1"),
-    // },
-    // {
-    //   name: "CAT",
-    //   symbol: "Meow",
-    //   ipfsUrl:
-    //     "ipfs://bafyreiflupn3zziegi4fm56uhoc3yesv2jiv5ovcj23b2qq3xqcu4kq46m/metadata.json",
-    //   maxSupply: 100,
-    //   mintingPrice: hre.ethers.utils.parseEther("1"),
-    // },
   ];
 
   await Promise.all(
@@ -45,6 +29,13 @@ async function main() {
       await openFormat.deployed();
 
       console.log("OpenFormat deployed to:", openFormat.address);
+
+      const allocateTx = await openFormat.allocateShares(
+        ["0x2Fd433ebb8Ad414FabD481cc7AD3BCaF9b6b155b"],
+        [30]
+      );
+      const allocateReceipt = await allocateTx.wait();
+      console.log(allocateReceipt);
     })
   );
 }
