@@ -187,12 +187,6 @@ describe("Open Format", function () {
       "getSingleTokenBalance(uint256)"
     ](0);
 
-    console.log({
-      tokenBalance0,
-      contractBalance,
-      newContractBalance,
-    });
-
     const maxSupply = await factoryContract.getMaxSupply();
 
     const holdersAmount = BigNumber.from(value)
