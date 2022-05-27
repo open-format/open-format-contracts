@@ -1,3 +1,5 @@
+require("dotenv").config();
+require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-docgen");
@@ -14,6 +16,11 @@ task(
     }
   }
 );
+const {
+  POLYGON_MUMBAI_RPC_PROVIDER,
+  PRIVATE_KEY,
+  POLYGONSCAN_API_KEY,
+} = process.env;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -46,10 +53,8 @@ module.exports = {
   },
   networks: {
     mumbai: {
-      url: "https://polygon-mumbai.infura.io/v3/b4f2a920d0a3498295cde60bd6c07770",
-      accounts: [
-        "6f7fca2bcff250c9250115b57eeb7b39644ca1ffd72fe3c8914715b0bc5a3db0",
-      ],
+      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      accounts: [`0x${PRIVATE_KEY}`],
       gasPrice: 8000000000,
     },
     hardhat: {
@@ -57,5 +62,8 @@ module.exports = {
       allowUnlimitedContractSize: true,
       gasPrice: 8000000000,
     },
+  },
+  etherscan: {
+    apiKey: POLYGONSCAN_API_KEY,
   },
 };
