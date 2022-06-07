@@ -1,5 +1,8 @@
 {
-  "name": "the-factory",
+  "name": "@simpleweb/open-format-contracts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "node:start": "npx hardhat node",
     "test": "npx hardhat test"
