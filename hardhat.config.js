@@ -18,6 +18,7 @@ task(
 );
 const {
   POLYGON_MUMBAI_RPC_PROVIDER,
+  POLYGON_RPC_PROVIDER,
   PRIVATE_KEY,
   POLYGONSCAN_API_KEY,
 } = process.env;
@@ -55,12 +56,17 @@ module.exports = {
     mumbai: {
       url: POLYGON_MUMBAI_RPC_PROVIDER,
       accounts: [`0x${PRIVATE_KEY}`],
-      gasPrice: 8000000000,
+      gasPrice: 10000000000,
     },
     hardhat: {
       blockGasLimit: 200000000,
       allowUnlimitedContractSize: true,
       gasPrice: 8000000000,
+    },
+    polygon: {
+      url: POLYGON_RPC_PROVIDER,
+      accounts: [`${PRIVATE_KEY}`],
+      gasPrice: 80000000000,
     },
   },
   etherscan: {
