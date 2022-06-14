@@ -1,3 +1,5 @@
+require("dotenv").config();
+require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-docgen");
@@ -14,6 +16,11 @@ task(
     }
   }
 );
+const {
+  POLYGON_MUMBAI_RPC_PROVIDER,
+  PRIVATE_KEY,
+  POLYGONSCAN_API_KEY,
+} = process.env;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -45,10 +52,18 @@ module.exports = {
     coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
   },
   networks: {
+    mumbai: {
+      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      accounts: [`0x${PRIVATE_KEY}`],
+      gasPrice: 8000000000,
+    },
     hardhat: {
       blockGasLimit: 200000000,
       allowUnlimitedContractSize: true,
-      gasPrice: 1e9,
+      gasPrice: 8000000000,
     },
+  },
+  etherscan: {
+    apiKey: POLYGONSCAN_API_KEY,
   },
 };
