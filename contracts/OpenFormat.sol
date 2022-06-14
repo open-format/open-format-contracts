@@ -338,9 +338,13 @@ contract OpenFormat is
         whenRevShare
         returns (uint256)
     {
+    
         address owner = ownerOf(tokenId);
         uint256 amount = IRevShareManager(approvedRevShareExtension)
             .getSingleTokenBalance(address(this), tokenId);
+
+        require(amount > 0, "OF:E-011" );
+
         payable(owner).sendValue(amount);
         IRevShareManager(approvedRevShareExtension).updateHolderBalanceETH(
             0,
@@ -367,6 +371,8 @@ contract OpenFormat is
     {
         uint256 amount = IRevShareManager(approvedRevShareExtension)
             .getSingleCollaboratorBalance(address(this), collaborator);
+
+        require(amount > 0, "OF:E-011" );
 
         payable(collaborator).sendValue(amount);
         IRevShareManager(approvedRevShareExtension)

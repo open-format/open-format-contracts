@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOpenFormat.sol";
 import "../interfaces/IRevShareManager.sol";
-import "hardhat/console.sol";
 
 contract RevShareExtension {
     using SafeMath for uint256;
@@ -65,7 +64,7 @@ contract RevShareExtension {
     {
         uint256 runningTotal = 0;
 
-        if (!excludedFromSplit) {
+        if (holdersPct[msg.sender] > 0 && !excludedFromSplit) {
             uint256 maxSupply = IOpenFormat(msg.sender).getMaxSupply();
             uint256 totalSupply = IOpenFormat(msg.sender).getTotalSupply();
 
