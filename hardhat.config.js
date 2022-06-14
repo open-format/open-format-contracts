@@ -66,7 +66,7 @@ module.exports = {
     },
     polygon: {
       url: POLYGON_RPC_PROVIDER,
-      accounts: [`${PRIVATE_KEY}`],
+      accounts: [`0x${PRIVATE_KEY}`],
       gasPrice: 80000000000,
     },
   },
