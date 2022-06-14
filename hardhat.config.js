@@ -54,20 +54,10 @@ module.exports = {
     coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
   },
   networks: {
-    mumbai: {
-      url: POLYGON_MUMBAI_RPC_PROVIDER,
-      accounts: [`0x${PRIVATE_KEY}`],
-      gasPrice: 10000000000,
-    },
     hardhat: {
       blockGasLimit: 200000000,
       allowUnlimitedContractSize: true,
       gasPrice: 8000000000,
-    },
-    polygon: {
-      url: POLYGON_RPC_PROVIDER,
-      accounts: [`0x${PRIVATE_KEY}`],
-      gasPrice: 80000000000,
     },
   },
   etherscan: {
