@@ -1,12 +1,16 @@
 {
-  "name": "the-factory",
+  "name": "@simpleweb/open-format-contracts",
+  "version": "0.1.0",
+  "repository": "git@github.com:simpleweb/open-format-contracts.git",
+  "author": "Andy Kitt <andy.kitt@simpleweb.co.uk>",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "node:start": "npx hardhat node",
     "test": "npx hardhat test"
   },
-  "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
