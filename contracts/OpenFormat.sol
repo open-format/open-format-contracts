@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -11,10 +11,9 @@ import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./ERC2981.sol";
-import "./interfaces/IDepositManager.sol";
+import "./interfaces/IRevShareManager.sol";
 import "./interfaces/IMintingManager.sol";
 import "./interfaces/IOpenFormat.sol";
-import "./PaymentSplitter.sol";
 
 /**
  * @title Open Format
@@ -29,8 +28,7 @@ contract OpenFormat is
     ERC721URIStorage,
     ERC721Enumerable,
     ERC2981,
-    Ownable,
-    PaymentSplitter
+    Ownable
 {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -39,7 +37,7 @@ contract OpenFormat is
     mapping(uint256 => address) internal _tokenCreator;
     mapping(uint256 => uint256) internal _tokenSalePrice;
 
-    address public approvedDepositExtension;
+    address public approvedRevShareExtension;
     address public approvedMintingExtension;
 
     uint256 internal constant PERCENTAGE_SCALE = 1e4; // 10000 100%
@@ -49,7 +47,6 @@ contract OpenFormat is
     uint256 public secondaryCommissionPct;
 
     bool public paused;
-    bool public shareIncomeWithHolders;
 
     string public metadataURI;
 
@@ -72,7 +69,7 @@ contract OpenFormat is
         string memory metadataURI_,
         uint256 maxSupply_,
         uint256 mintingPrice_
-    ) ERC721(name_, symbol_) PaymentSplitter() {
+    ) ERC721(name_, symbol_) {
         metadataURI = metadataURI_;
         maxSupply = maxSupply_;
         mintingPrice = mintingPrice_;
@@ -169,6 +166,7 @@ contract OpenFormat is
      * @notice Mints a NFT.
      * @dev This is an overloaded function.
      * @dev An approved minting extension can be used before minting is approved.
+     * @dev An approved revenue share extension can be used after minting to split the msg.value between multiple parties.
      * @return newTokenId The ID of the minted token.
      */
 
@@ -187,12 +185,23 @@ contract OpenFormat is
         }
 
         newTokenId = _mint();
+
+        if (approvedRevShareExtension != address(0)) {
+            IRevShareManager(approvedRevShareExtension).calculateSplitETH(
+                msg.value,
+                true
+            );
+        } else {
+            payable(owner()).sendValue(msg.value);
+        }
     }
 
     /**
      * @notice Mints a NFT with a primary commission.
      * @dev This is an overloaded function.
      * @dev If a primary commission percentage is set, a percentage of the minting cost will go to the commission address.
+     * @dev An approved minting extension can be used before minting is approved.
+     * @dev An approved revenue share extension can be used after minting to split the msg.value between multiple parties.
      * @param commissionAddress The address that receives a percentage of the minting cost.
      * @return newTokenId The ID of the minted token.
      */
@@ -222,7 +231,20 @@ contract OpenFormat is
             );
         }
 
+        if (approvedMintingExtension != address(0)) {
+            IMintingManager(approvedMintingExtension).mint(msg.sender);
+        }
+
         newTokenId = _mint();
+
+        if (approvedRevShareExtension != address(0)) {
+            IRevShareManager(approvedRevShareExtension).calculateSplitETH(
+                msg.value,
+                true
+            );
+        } else {
+            payable(owner()).sendValue(msg.value);
+        }
     }
 
     /**
@@ -280,61 +302,32 @@ contract OpenFormat is
     }
 
     /**
-     * @notice This function handles Ether deposits via the approved deposit extension.
+     * @notice This function handles Ether deposits via the approved revenue share extension.
+     * @param excludedFromSplit This param can be used to conditionally call/ignore code in your revenue share extension depending on source of the value.
      * @dev This is an overloaded function.
-     * @dev An approved deposit extension must be set.
+     * @dev An approved revenue share extension must be set.
      */
 
-    function deposit() public payable virtual override {
-        require(approvedDepositExtension != address(0), "OF:E-003");
-
-        uint256 totalSupply = totalSupply();
-
-        IDepositManager(approvedDepositExtension).calculateSplitETH(
+    function calculateRevShares(bool excludedFromSplit)
+        public
+        payable
+        virtual
+        override
+        whenRevShare
+    {
+        IRevShareManager(approvedRevShareExtension).calculateSplitETH(
             msg.value,
-            totalSupply
+            excludedFromSplit
         );
-        _totalDepositedAmount += msg.value;
 
         emit TotalDepositedAmountUpdated(msg.value);
     }
 
     /**
-     * @notice This function handles ERC20 token deposits via the approved deposit extension.
-     * @param token The contract address of the ERC20 token.
-     * @param amount The amount (in wei) of the ERC20 token to deposit.
-     * @dev This is an overloaded function.
-     * @dev An approved deposit extension must be set.
-     */
-
-    function deposit(IERC20 token, uint256 amount)
-        external
-        payable
-        virtual
-        override
-    {
-        uint256 allowance = token.allowance(msg.sender, address(this));
-        uint256 totalSupply = totalSupply();
-
-        require(approvedDepositExtension != address(0), "OF:E-003");
-        require(allowance >= amount, "OF:E-004");
-
-        token.transferFrom(msg.sender, address(this), amount);
-
-        IDepositManager(approvedDepositExtension).calculateSplitERC20(
-            token,
-            amount,
-            totalSupply
-        );
-        _erc20TotalDeposited[token] += amount;
-        emit ERC20TotalDepositedAmountUpdated(token, msg.value);
-    }
-
-    /**
-     * @notice This function handles withdrawing the Ether balance of a single token via the approved deposit extension.
+     * @notice This function handles withdrawing the Ether balance of a single token via the approved revenue share extension.
      * @param tokenId The ID of the token to withdraw from.
      * @dev This is an overloaded function.
-     * @dev An approved deposit extension must be set.
+     * @dev An approved revenue share extension must be set.
      * @dev This will withdraw the entire balance for the given NFT.
      */
 
@@ -342,16 +335,18 @@ contract OpenFormat is
         public
         payable
         onlyTokenOwnerOrApproved(tokenId)
+        whenRevShare
         returns (uint256)
     {
-        require(approvedDepositExtension != address(0), "OF:E-003");
-
-        address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedDepositExtension)
+    
+        address owner = ownerOf(tokenId);
+        uint256 amount = IRevShareManager(approvedRevShareExtension)
             .getSingleTokenBalance(address(this), tokenId);
+
+        require(amount > 0, "OF:E-011" );
+
         payable(owner).sendValue(amount);
-        _totalDepositedReleased += amount;
-        IDepositManager(approvedDepositExtension).updateSplitBalanceETH(
+        IRevShareManager(approvedRevShareExtension).updateHolderBalanceETH(
             0,
             tokenId
         );
@@ -361,34 +356,29 @@ contract OpenFormat is
     }
 
     /**
-     * @notice This function handles withdrawing ERC20 balances of a single token via the approved deposit extension.
-     * @param token The contract address of the ERC20 token.
-     * @param tokenId The ID of the token to withdraw from.
+     * @notice This function handles withdrawing the Ether balance of a single collaborator via the approved revenue share extension.
+     * @param collaborator The address of the collaborator
      * @dev This is an overloaded function.
-     * @dev An approved deposit extension must be set.
-     * @dev This will withdraw the entire balance of a single ERC20 token for the given NFT.
+     * @dev An approved revenue share extension must be set.
+     * @dev This will withdraw the entire balance for the given NFT.
      */
 
-    function withdraw(IERC20 token, uint256 tokenId)
+    function withdraw(address collaborator)
         public
         payable
-        onlyTokenOwnerOrApproved(tokenId)
+        whenRevShare
         returns (uint256)
     {
-        require(approvedDepositExtension != address(0), "OF:E-003");
+        uint256 amount = IRevShareManager(approvedRevShareExtension)
+            .getSingleCollaboratorBalance(address(this), collaborator);
 
-        address owner = ownerOf(tokenId); // 0
-        uint256 amount = IDepositManager(approvedDepositExtension)
-            .getSingleTokenBalance(token, address(this), tokenId);
-        _erc20TotalDepositedReleased[token] += amount;
-        IDepositManager(approvedDepositExtension).updateSplitBalanceERC20(
-            token,
-            0,
-            tokenId
-        );
-        token.safeTransfer(owner, amount);
+        require(amount > 0, "OF:E-011" );
 
-        emit ERC20TokenBalanceWithdrawn(token, tokenId, amount);
+        payable(collaborator).sendValue(amount);
+        IRevShareManager(approvedRevShareExtension)
+            .updateCollaboratorBalanceETH(0, collaborator);
+
+        emit CollaboratorBalanceWithdrawn(collaborator, amount);
         return amount;
     }
 
@@ -439,7 +429,7 @@ contract OpenFormat is
 
     /**
      * @notice Getter for the Ether balance of a single token.
-     * @dev An approved deposit extension must be set.
+     * @dev An approved revenue share extension must be set.
      * @param tokenId The token ID.
      * @return tokenBalance The token balance in Ether.
      */
@@ -447,33 +437,45 @@ contract OpenFormat is
     function getSingleTokenBalance(uint256 tokenId)
         external
         view
+        whenRevShare
         returns (uint256 tokenBalance)
     {
-        require(approvedDepositExtension != address(0), "OF:E-003");
-        uint256 balance = IDepositManager(approvedDepositExtension)
+        uint256 balance = IRevShareManager(approvedRevShareExtension)
             .getSingleTokenBalance(address(this), tokenId);
 
         return balance;
     }
 
     /**
-     * @notice Getter for the ERC20 token balance of a single token.
-     * @dev An approved deposit extension must be set.
-     * @param token The contract address of the ERC20 token.
-     * @param tokenId The token ID.
-     * @return tokenBalance The token balance of the given ERC20 token in Ether.
+     * @notice Getter for the Ether balance of a single collaborator.
+     * @dev An approved revenue share extension must be set.
+     * @param collaborator The address of the collaborator.
+     * @return tokenBalance The token balance in Ether.
      */
 
-    function getSingleTokenBalance(IERC20 token, uint256 tokenId)
+    function getSingleCollaboratorBalance(address collaborator)
         external
         view
+        whenRevShare
         returns (uint256 tokenBalance)
     {
-        require(approvedDepositExtension != address(0), "OF:E-003");
-        uint256 balance = IDepositManager(approvedDepositExtension)
-            .getSingleTokenBalance(token, address(this), tokenId);
+        uint256 balance = IRevShareManager(approvedRevShareExtension)
+            .getSingleCollaboratorBalance(address(this), collaborator);
 
         return balance;
+    }
+
+    function allocateShares(
+        address[] calldata accounts_,
+        uint256[] calldata shares_
+    ) external whenRevShare {
+        IRevShareManager(approvedRevShareExtension).allocateShares(
+            msg.sender,
+            accounts_,
+            shares_
+        );
+
+        emit SharesAllocated(accounts_, shares_);
     }
 
     /***********************************|
@@ -558,20 +560,34 @@ contract OpenFormat is
     }
 
     /**
-     * @notice Setter for the approved deposit extension.
-     * @param contractAddress The contract address of the deposit extension.
+     * @notice Setter for the approved revenue share extension.
+     * @param contractAddress The contract address of the revenue share extension.
+     * @param collaborators an array of collaborator addresses.
+     * @param shares an array of shares assigned to each collaborator.
      * @param holderPct The percentage of a deposit that each token will receive.
-     * @dev holderPct e.g 2.5% = 250
+     * @dev holderPct/percentages e.g 2.5% = 250
      * @dev This function can only be called by the owner of the contract.
      */
 
-    function setApprovedDepositExtension(
+    function setApprovedRevShareExtension(
         address contractAddress,
+        address[] calldata collaborators,
+        uint256[] calldata shares,
         uint256 holderPct
     ) public onlyOwner {
-        approvedDepositExtension = contractAddress;
-        IDepositManager(contractAddress).setHolderPct(holderPct);
-        emit ApprovedDepositExtensionSet(approvedDepositExtension);
+        approvedRevShareExtension = contractAddress;
+        IRevShareManager(contractAddress).setupRevShare(
+            collaborators,
+            shares,
+            holderPct
+        );
+
+        emit ApprovedRevShareExtensionSet(
+            approvedRevShareExtension,
+            collaborators,
+            shares,
+            holderPct
+        );
     }
 
     /**
@@ -614,17 +630,6 @@ contract OpenFormat is
         require(amount <= PERCENTAGE_SCALE, "OF:E-006");
         secondaryCommissionPct = amount;
         emit SecondaryCommissionSet(amount);
-    }
-
-    /**
-     * @notice Setter for sharing income (via the receive) with NFT holders
-     * @param state true or false
-     * @dev This function can only be called by the owner of the contract.
-     */
-
-    function setShareIncomeWithHolders(bool state) public onlyOwner {
-        shareIncomeWithHolders = state;
-        emit ShareIncomeWithHoldersSet(state);
     }
 
     /**
@@ -727,19 +732,16 @@ contract OpenFormat is
         _;
     }
 
-    /**
-     * @dev The Ether received will be logged with {PaymentReceived} events. Note that these events are not fully
-     * reliable: it's possible for a contract to receive Ether without triggering this function. This only affects the
-     * reliability of the events, and not the actual splitting of Ether.
-     *
-     * To learn more about this see the Solidity documentation for
-     * https://solidity.readthedocs.io/en/latest/contracts.html#fallback-function[fallback
-     * functions].
-     */
+    modifier whenRevShare() {
+        require(approvedRevShareExtension != address(0), "OF:E-003");
+        _;
+    }
 
     receive() external payable {
-        if (shareIncomeWithHolders) {
-            deposit();
+        if (approvedRevShareExtension != address(0)) {
+            calculateRevShares(false);
+        } else {
+            payable(owner()).sendValue(msg.value);
         }
         emit PaymentReceived(_msgSender(), msg.value);
     }

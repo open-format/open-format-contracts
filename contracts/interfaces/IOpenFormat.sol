@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 
 pragma solidity ^0.8.4;
 
@@ -63,6 +63,15 @@ interface IOpenFormat is IERC721 {
     event PrimaryCommissionSet(uint256 indexed amount);
     event SecondaryCommissionSet(uint256 indexed amount);
     event RoyaltyPaid(address indexed recipient, uint256 indexed amount);
+    event SharesAllocated(address[] accounts, uint256[] shares);
+    event PaymentReceived(address sender, uint256 value);
+    event CollaboratorBalanceWithdrawn(address collaborator, uint256 amount);
+    event ApprovedRevShareExtensionSet(
+        address approvedRevShareExtension,
+        address[] collaborators,
+        uint256[] percentages,
+        uint256 holderPct
+    );
 
     /***********************************|
   |              Public               |
@@ -88,9 +97,7 @@ interface IOpenFormat is IERC721 {
 
     function burn(uint256 tokenId) external;
 
-    function deposit() external payable;
-
-    function deposit(IERC20 token, uint256 amount) external payable;
+    function calculateRevShares(bool excludedFromSplit) external payable;
 
     function getMaxSupply() external view returns (uint256);
 

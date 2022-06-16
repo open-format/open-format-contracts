@@ -3,6 +3,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-docgen");
+require("@nomiclabs/hardhat-solhint");
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task(
@@ -18,6 +19,7 @@ task(
 );
 const {
   POLYGON_MUMBAI_RPC_PROVIDER,
+  POLYGON_RPC_PROVIDER,
   PRIVATE_KEY,
   POLYGONSCAN_API_KEY,
 } = process.env;
@@ -52,11 +54,6 @@ module.exports = {
     coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
   },
   networks: {
-    mumbai: {
-      url: POLYGON_MUMBAI_RPC_PROVIDER,
-      accounts: [`0x${PRIVATE_KEY}`],
-      gasPrice: 8000000000,
-    },
     hardhat: {
       blockGasLimit: 200000000,
       allowUnlimitedContractSize: true,
