@@ -1,6 +1,6 @@
 {
   "name": "@simpleweb/open-format-contracts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": "git@github.com:simpleweb/open-format-contracts.git",
   "author": "Andy Kitt <andy.kitt@simpleweb.co.uk>",
   "publishConfig": {
