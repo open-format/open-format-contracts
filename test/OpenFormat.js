@@ -7,7 +7,7 @@ async function balance(address) {
   return await ethers.provider.getBalance(address);
 }
 
-describe("Open Format", function () {
+describe("Open Format", function() {
   let factoryContract;
   let revShare;
   let uri = "ipfs://";
@@ -21,8 +21,13 @@ describe("Open Format", function () {
   const PERCENTAGE_SCALE = 10000;
 
   beforeEach(async () => {
-    [owner, address1, address2, address3, feeHandler] =
-      await ethers.getSigners();
+    [
+      owner,
+      address1,
+      address2,
+      address3,
+      feeHandler,
+    ] = await ethers.getSigners();
 
     collaborators = [
       address1.address,
@@ -57,18 +62,18 @@ describe("Open Format", function () {
       );
   });
 
-  it("should add revShare contract as deposit manager", async () => {
+  it("must add revShare contract as deposit manager", async () => {
     expect(
       await factoryContract.approvedRevShareExtension()
     ).to.equal(revShare.address);
   });
 
-  it("should increase totalSupply of tokens", async () => {
+  it("must increase totalSupply of tokens", async () => {
     await factoryContract["mint()"]({ value: mintingPrice });
     expect(await factoryContract.totalSupply()).to.equal(1);
   });
 
-  it("should burn token", async () => {
+  it("must burn token", async () => {
     await factoryContract["mint()"]({ value: mintingPrice });
     const totalSupply = await factoryContract.totalSupply();
     await factoryContract.burn(0);
@@ -79,7 +84,7 @@ describe("Open Format", function () {
     expect(totalSupply).to.be.equal(1);
   });
 
-  it("should only allow holder or approved to burn", async () => {
+  it("must only allow holder or approved to burn", async () => {
     await factoryContract["mint()"]({ value: mintingPrice });
 
     await expect(
@@ -87,15 +92,36 @@ describe("Open Format", function () {
     ).to.be.revertedWith("OF:E-010");
   });
 
-  describe("Sales commission", function () {
-    it("should allow the owner to set the sales commission", async () => {
+  it.only("must not allow more than the maxSupply of tokens to be minted", async () => {
+    await factoryContract.setMaxSupply(2);
+    await factoryContract["mint()"]({ value: mintingPrice });
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    await expect(
+      factoryContract["mint()"]({ value: mintingPrice })
+    ).to.be.revertedWith("OF:E-012");
+  });
+
+  it("must allow the owner to update the max supply to tokens to be minted", async () => {
+    await factoryContract.setMaxSupply(12);
+    expect(await factoryContract.getMaxSupply()).to.be.equal(12);
+  });
+
+  it("must not allow anyone to update the max supply to tokens to be minted", async () => {
+    await expect(
+      factoryContract.connect(address1).setMaxSupply(12)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  describe("Sales commission", function() {
+    it("must allow the owner to set the sales commission", async () => {
       await factoryContract.setPrimaryCommissionPct(250);
       expect(
         await factoryContract.getPrimaryCommissionPct()
       ).to.be.equal(250);
     });
 
-    it("should prevent from setting a sales commission over 100%", async () => {
+    it("must prevent from setting a sales commission over 100%", async () => {
       await expect(
         factoryContract.setPrimaryCommissionPct(10001)
       ).to.be.revertedWith("OF:E-006");
@@ -108,7 +134,7 @@ describe("Open Format", function () {
           .setPrimaryCommissionPct(BigNumber.from(5))
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
-    it("should mint with a sales commission", async () => {
+    it("must mint with a sales commission", async () => {
       const PERCENTAGE_SCALE = 10000;
       const saleCommissionPct = 1000;
       // set Minting Price
@@ -136,7 +162,7 @@ describe("Open Format", function () {
       );
     });
 
-    it("should handle secondary marketplace commission", async () => {
+    it("must handle secondary marketplace commission", async () => {
       const value = ethers.utils.parseEther("1");
       const PERCENTAGE_SCALE = 10000;
       const saleCommissionPct = 1000;
@@ -176,7 +202,7 @@ describe("Open Format", function () {
       );
     });
   });
-  describe("Royalties", function () {
+  describe("Royalties", function() {
     let factoryContract;
     const value = ethers.utils.parseEther("1");
     let uri = "ipfs://";
@@ -186,8 +212,13 @@ describe("Open Format", function () {
     let royaltyAmount = value.mul(royaltyPct).div(PERCENTAGE_SCALE);
 
     beforeEach(async () => {
-      [owner, address1, address2, address3, feeHandler] =
-        await ethers.getSigners();
+      [
+        owner,
+        address1,
+        address2,
+        address3,
+        feeHandler,
+      ] = await ethers.getSigners();
 
       const FactoryContract = await ethers.getContractFactory(
         "OpenFormat"
@@ -202,14 +233,14 @@ describe("Open Format", function () {
       );
     });
 
-    it("should correctly calculate royalties", async () => {
+    it("must correctly calculate royalties", async () => {
       await factoryContract.setRoyalties(address1.address, 5000);
       const [_, amount] = await factoryContract.royaltyInfo(0, value);
 
       expect(amount).to.be.equal(royaltyAmount);
     });
 
-    it("should prevent anyone from setting royalties", async () => {
+    it("must prevent anyone from setting royalties", async () => {
       await expect(
         factoryContract
           .connect(address2)
@@ -217,13 +248,13 @@ describe("Open Format", function () {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should prevent the royalties from being over 100%", async () => {
+    it("must prevent the royalties from being over 100%", async () => {
       await expect(
         factoryContract.setRoyalties(address1.address, 10001)
       ).to.be.revertedWith("ERC2981Royalties: Too high");
     });
 
-    it("should correctly distribute royalties without RoyaltyExtension", async () => {
+    it("must correctly distribute royalties without RoyaltyExtension", async () => {
       // set Royalties percentage to 50%
       await factoryContract.setRoyalties(owner.address, royaltyPct);
 
@@ -252,7 +283,7 @@ describe("Open Format", function () {
       );
     });
 
-    it("should not send royalties if not set", async () => {
+    it("must not send royalties if not set", async () => {
       // mint NFT
       await factoryContract["mint()"]({
         value: mintingPrice,
