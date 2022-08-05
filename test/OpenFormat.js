@@ -92,7 +92,7 @@ describe("Open Format", function() {
     ).to.be.revertedWith("OF:E-010");
   });
 
-  it.only("must not allow more than the maxSupply of tokens to be minted", async () => {
+  it("must not allow more than the maxSupply of tokens to be minted", async () => {
     await factoryContract.setMaxSupply(2);
     await factoryContract["mint()"]({ value: mintingPrice });
     await factoryContract["mint()"]({ value: mintingPrice });
@@ -111,6 +111,36 @@ describe("Open Format", function() {
     await expect(
       factoryContract.connect(address1).setMaxSupply(12)
     ).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("must not allow a token to be purchased unless a tokenSalePrice greater than 0 is set", async () => {
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    await factoryContract.connect(address1)["mint()"]({
+      value: mintingPrice
+    });
+
+    await expect(factoryContract.connect(address2)["buy(uint256)"](0, {
+        value: value
+    })).to.be.revertedWith("OF:E-007")
+  });
+
+  it("must set the tokenSalePrice to 0 after being purchased on the secondary market", async () => {
+    const SecondaryMarketTokenValue = ethers.utils.parseEther("1");
+
+    await factoryContract["mint()"]({ value: mintingPrice });
+
+    await factoryContract.connect(address1)["mint()"]({
+      value: mintingPrice
+    });
+
+    await factoryContract.setTokenSalePrice(0, SecondaryMarketTokenValue);
+
+    await factoryContract.connect(address2)["buy(uint256)"](0, {
+      value: value
+    });
+
+    expect(await factoryContract.getTokenSalePrice(0)).to.eq(0);
   });
 
   describe("Sales commission", function() {
