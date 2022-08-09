@@ -687,6 +687,8 @@ contract OpenFormat is
         // Transfer Payment
         payable(oldOwner).sendValue(tokenSalePrice.sub(amount));
 
+        _setTokenSalePrice(tokenId, 0);
+
         emit Sold(tokenId, oldOwner, newOwner, tokenSalePrice);
 
         _refundOverpayment(tokenSalePrice);
