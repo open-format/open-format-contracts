@@ -15,6 +15,47 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+const token = {
+  name: "Penguins",
+  symbol: "PENG",
+  ipfsUrl:
+    "ipfs://bafyreiflupn3zziegi4fm56uhoc3yesv2jiv5ovcj23b2qq3xqcu4kq46m/metadata.json",
+  maxSupply: 100,
+  mintingPrice: "1000000000000000000"
+};
+
+task("deploy-openformat", "deploy openformat contract").setAction(
+  async (taskArgs, hre) => {
+    const OpenFormat = await hre.ethers.getContractFactory("OpenFormat");
+
+    const openFormat = await OpenFormat.deploy(
+      token.name,
+      token.symbol,
+      token.ipfsUrl,
+      token.maxSupply,
+      token.mintingPrice
+    );
+
+    await openFormat.deployed();
+    console.log("Deployed Contract address: ", openFormat.address);
+  }
+);
+
+task("verify-openformat", "verify openformat contract")
+  .addParam("address", "The deployed contracts address")
+  .setAction(async (taskArgs, hre) => {
+    await hre.run("verify:verify", {
+      address: taskArgs.address,
+      constructorArguments: [
+        token.name,
+        token.symbol,
+        token.ipfsUrl,
+        token.maxSupply,
+        token.mintingPrice
+      ]
+    });
+  });
+
 const {
   OWNER_PRIVATE_KEY,
   ADDRESS_1_PRIVATE_KEY,
