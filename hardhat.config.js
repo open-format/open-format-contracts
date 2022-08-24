@@ -61,11 +61,11 @@ module.exports = {
     },
     polygon: {
       url: POLYGON_RPC_PROVIDER,
-      accounts
+      accounts: [`${PRIVATE_KEY}`]
     },
     mumbai: {
       url: POLYGON_MUMBAI_RPC_PROVIDER,
-      accounts
+      accounts: [`${PRIVATE_KEY}`]
     }
   },
   etherscan: {
