@@ -52,7 +52,7 @@ describe("Royalties", function() {
   it("must prevent the royalties from being over 100%", async () => {
     await expect(
       factoryContract.setRoyalties(address1.address, 10001)
-    ).to.be.revertedWith("ERC2981Royalties: Too high");
+    ).to.be.revertedWith("ERC2981: royalty fee will exceed salePrice");
   });
 
   it("must correctly distribute royalties without RoyaltyExtension", async () => {

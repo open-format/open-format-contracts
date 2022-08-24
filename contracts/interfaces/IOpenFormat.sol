@@ -53,7 +53,7 @@ interface IOpenFormat is IERC721 {
     event ShareIncomeWithHoldersSet(bool state);
     event SalePriceSet(uint256 indexed tokenId, uint256 salePrice);
     event Minted(uint256 indexed newTokenId, address indexed owner);
-    event RoyaltiesSet(address indexed receiver, uint256 indexed percentage);
+    event RoyaltiesSet(address indexed receiver, uint96 indexed percentage);
     event TotalDepositedAmountUpdated(uint256 indexed amount);
     event MintingPriceSet(uint256 indexed amount);
     event MaxSupplySet(uint256 indexed amount);
@@ -112,7 +112,7 @@ interface IOpenFormat is IERC721 {
 
     function setMintingPrice(uint256 amount) external;
 
-    function setRoyalties(address royaltyReceiver, uint256 royaltiesPct)
+    function setRoyalties(address royaltyReceiver, uint96 royaltiesPct)
         external;
 
     function setMaxSupply(uint256 amount) external;
