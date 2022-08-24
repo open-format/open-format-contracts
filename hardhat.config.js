@@ -24,7 +24,7 @@ const token = {
   mintingPrice: "1000000000000000000"
 };
 
-task("deploy", "Deploy Open Format contract").setAction(
+task("deploy-contract", "Deploy Open Format contract").setAction(
   async (taskArgs, hre) => {
     const OpenFormat = await hre.ethers.getContractFactory("OpenFormat");
 
@@ -41,7 +41,7 @@ task("deploy", "Deploy Open Format contract").setAction(
   }
 );
 
-task("verify-openformat", "Verify Open Format contract")
+task("verify-contract", "Verify Open Format contract")
   .addParam("address", "The deployed contracts address")
   .setAction(async (taskArgs, hre) => {
     await hre.run("verify:verify", {
