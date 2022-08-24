@@ -56,25 +56,6 @@ task("verify-openformat", "verify openformat contract")
     });
   });
 
-const {
-  OWNER_PRIVATE_KEY,
-  ADDRESS_1_PRIVATE_KEY,
-  ADDRESS_2_PRIVATE_KEY,
-  ADDRESS_3_PRIVATE_KEY,
-  FEEHANDLER_PRIVATE_KEY,
-  POLYGON_MUMBAI_RPC_PROVIDER,
-  POLYGON_RPC_PROVIDER,
-  POLYGONSCAN_API_KEY
-} = process.env;
-
-const accounts = [
-  `${OWNER_PRIVATE_KEY}`,
-  `${ADDRESS_1_PRIVATE_KEY}`,
-  `${ADDRESS_2_PRIVATE_KEY}`,
-  `${ADDRESS_3_PRIVATE_KEY}`,
-  `${FEEHANDLER_PRIVATE_KEY}`
-];
-
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
