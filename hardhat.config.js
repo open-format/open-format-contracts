@@ -59,6 +59,14 @@ module.exports = {
       allowUnlimitedContractSize: true,
       gasPrice: 8000000000,
     },
+    polygon: {
+      url: POLYGON_RPC_PROVIDER,
+      accounts
+    },
+    mumbai: {
+      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      accounts
+    }
   },
   etherscan: {
     apiKey: POLYGONSCAN_API_KEY,
