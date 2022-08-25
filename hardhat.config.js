@@ -56,9 +56,7 @@ task("verify-contract", "Verify Open Format contract")
     });
   });
 
-const {
-  PRIVATE_KEY, POLYGONSCAN_API_KEY
-} = process.env;
+const { PRIVATE_KEY, POLYGONSCAN_API_KEY } = process.env;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
