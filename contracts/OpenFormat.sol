@@ -181,20 +181,7 @@ contract OpenFormat is
         require(msg.value >= mintingPrice, "OF:E-001");
         require(totalSupply() < maxSupply, "OF:E-012");
 
-        if (approvedMintingExtension != address(0)) {
-            IMintingManager(approvedMintingExtension).mint(msg.sender);
-        }
-
         newTokenId = _mint();
-
-        if (approvedRevShareExtension != address(0)) {
-            IRevShareManager(approvedRevShareExtension).calculateSplitETH(
-                msg.value,
-                true
-            );
-        } else {
-            payable(owner()).sendValue(msg.value);
-        }
     }
 
     /**
@@ -233,20 +220,7 @@ contract OpenFormat is
             );
         }
 
-        if (approvedMintingExtension != address(0)) {
-            IMintingManager(approvedMintingExtension).mint(msg.sender);
-        }
-
         newTokenId = _mint();
-
-        if (approvedRevShareExtension != address(0)) {
-            IRevShareManager(approvedRevShareExtension).calculateSplitETH(
-                msg.value,
-                true
-            );
-        } else {
-            payable(owner()).sendValue(msg.value);
-        }
     }
 
     /**
@@ -654,10 +628,25 @@ contract OpenFormat is
   |__________________________________*/
     function _mint() internal virtual returns (uint256 newTokenId) {
         newTokenId = totalSupply();
+
+        if (approvedMintingExtension != address(0)) {
+            IMintingManager(approvedMintingExtension).mint(msg.sender);
+        }
+
         _safeMint(msg.sender, newTokenId, "");
         _tokenCreator[newTokenId] = msg.sender;
 
         _setTokenURI(newTokenId, metadataURI);
+
+        if (approvedRevShareExtension != address(0)) {
+            IRevShareManager(approvedRevShareExtension).calculateSplitETH(
+                msg.value,
+                true
+            );
+        } else {
+            payable(owner()).sendValue(msg.value);
+        }
+
         emit Minted(newTokenId, msg.sender);
     }
 
