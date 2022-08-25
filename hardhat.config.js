@@ -55,7 +55,7 @@ task("verify-contract", "Verify Open Format contract")
       ]
     });
   });
-
+  
 const { PRIVATE_KEY, POLYGONSCAN_API_KEY } = process.env;
 
 // You need to export an object to set up your config
@@ -94,11 +94,11 @@ module.exports = {
       gasPrice: 8000000000
     },
     polygon: {
-      url: POLYGON_RPC_PROVIDER,
+      url: "https://polygon-rpc.com",
       accounts: [`${PRIVATE_KEY}`]
     },
     mumbai: {
-      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      url: "https://matic-mumbai.chainstacklabs.com",
       accounts: [`${PRIVATE_KEY}`]
     }
   },
