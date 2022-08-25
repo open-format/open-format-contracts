@@ -25,3 +25,7 @@ jobs:
         run: "yarn install"
       - name: "Test"
         run: "yarn test"
+        with:
+          PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
+        env: 
+          PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
