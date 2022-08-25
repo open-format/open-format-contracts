@@ -57,8 +57,6 @@ task("verify-contract", "Verify Open Format contract")
   });
 
 const {
-  POLYGON_MUMBAI_RPC_PROVIDER,
-  POLYGON_RPC_PROVIDER,
   PRIVATE_KEY,
   POLYGONSCAN_API_KEY
 } = process.env;
