@@ -9,8 +9,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 
-import "./ERC2981.sol";
 import "./interfaces/IRevShareManager.sol";
 import "./interfaces/IMintingManager.sol";
 import "./interfaces/IOpenFormat.sol";
@@ -27,7 +27,7 @@ contract OpenFormat is
     ERC721,
     ERC721URIStorage,
     ERC721Enumerable,
-    ERC2981,
+    ERC721Royalty,
     Ownable
 {
     using SafeERC20 for IERC20;
@@ -100,7 +100,7 @@ contract OpenFormat is
         public
         view
         virtual
-        override(ERC721, IERC165, ERC721Enumerable)
+        override(ERC721, IERC165, ERC721Enumerable, ERC721Royalty)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -108,7 +108,7 @@ contract OpenFormat is
 
     function _burn(uint256 tokenId)
         internal
-        override(ERC721, ERC721URIStorage)
+        override(ERC721, ERC721URIStorage, ERC721Royalty)
     {
         super._burn(tokenId);
     }
@@ -507,7 +507,7 @@ contract OpenFormat is
      * @dev This function can only be called by the owner of the contract.
      */
 
-    function setRoyalties(address royaltyReceiver, uint256 royaltiesPct)
+    function setRoyalties(address royaltyReceiver, uint96 royaltiesPct)
         external
         virtual
         override
@@ -516,7 +516,7 @@ contract OpenFormat is
         require(royaltiesPct > 0, "OF:E-004");
         require(royaltyReceiver != address(0), "OF:E-005");
 
-        _setRoyalties(royaltyReceiver, royaltiesPct);
+        _setDefaultRoyalty(royaltyReceiver, royaltiesPct);
         emit RoyaltiesSet(royaltyReceiver, royaltiesPct);
     }
 
