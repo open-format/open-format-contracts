@@ -21,6 +21,7 @@ const {
   POLYGON_MUMBAI_RPC_PROVIDER,
   POLYGON_RPC_PROVIDER,
   PRIVATE_KEY,
+  COIN_MARKET_CAP_API_KEY,
   POLYGONSCAN_API_KEY,
 } = process.env;
 
@@ -48,16 +49,16 @@ module.exports = {
     ],
   },
   gasReporter: {
-    enabled: false,
+    enabled: true,
     currency: "GBP",
     token: "ETH",
-    coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597",
+    coinmarketcap: COIN_MARKET_CAP_API_KEY,
   },
   networks: {
     hardhat: {
-      blockGasLimit: 200000000,
+      blockGasLimit: 2e8,
       allowUnlimitedContractSize: true,
-      gasPrice: 8000000000,
+      gasPrice: 8e9,
     },
   },
   etherscan: {
