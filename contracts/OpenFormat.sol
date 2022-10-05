@@ -15,6 +15,8 @@ import "./interfaces/IRevShareManager.sol";
 import "./interfaces/IMintingManager.sol";
 import "./interfaces/IOpenFormat.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Open Format
  * @dev This is the main contract for the Open Format protocol.
@@ -49,6 +51,8 @@ contract OpenFormat is
     bool public paused;
 
     string public metadataURI;
+
+    address public currency;
 
     /***********************************|
  |          Initialization           |
@@ -181,20 +185,20 @@ contract OpenFormat is
         require(msg.value >= mintingPrice, "OF:E-001");
         require(totalSupply() < maxSupply, "OF:E-012");
 
-        if (approvedMintingExtension != address(0)) {
-            IMintingManager(approvedMintingExtension).mint(msg.sender);
-        }
-
-        newTokenId = _mint();
-
         if (approvedRevShareExtension != address(0)) {
             IRevShareManager(approvedRevShareExtension).calculateSplitETH(
                 msg.value,
                 true
             );
         } else {
-            payable(owner()).sendValue(msg.value);
+            makePayment(msg.sender, owner(), msg.value);
         }
+
+        if (approvedMintingExtension != address(0)) {
+            IMintingManager(approvedMintingExtension).mint(msg.sender);
+        }
+
+        newTokenId = _mint();
     }
 
     /**
@@ -223,7 +227,8 @@ contract OpenFormat is
                 primaryCommissionPct,
                 msg.value
             );
-            payable(commissionAddress).sendValue(amount);
+        
+            makePayment(msg.sender, commissionAddress, amount);
 
             emit CommissionPaid(
                 "primary",
@@ -237,16 +242,16 @@ contract OpenFormat is
             IMintingManager(approvedMintingExtension).mint(msg.sender);
         }
 
-        newTokenId = _mint();
-
         if (approvedRevShareExtension != address(0)) {
             IRevShareManager(approvedRevShareExtension).calculateSplitETH(
                 msg.value,
                 true
             );
         } else {
-            payable(owner()).sendValue(msg.value);
+            makePayment(msg.sender, owner(), msg.value);
         }
+
+        newTokenId = _mint();
     }
 
     /**
@@ -290,7 +295,7 @@ contract OpenFormat is
         );
 
         if (secondaryCommissionPct > 0) {
-            payable(commissionAddress).sendValue(commissionAmount);
+            makePayment(msg.sender, commissionAddress, commissionAmount);
 
             emit CommissionPaid(
                 "secondary",
@@ -346,7 +351,8 @@ contract OpenFormat is
 
         require(amount > 0, "OF:E-011");
 
-        payable(owner).sendValue(amount);
+        makePayment(address(this), owner, amount);
+
         IRevShareManager(approvedRevShareExtension).updateHolderBalanceETH(
             0,
             tokenId
@@ -375,7 +381,8 @@ contract OpenFormat is
 
         require(amount > 0, "OF:E-011");
 
-        payable(collaborator).sendValue(amount);
+        makePayment(address(this), collaborator, amount);
+
         IRevShareManager(approvedRevShareExtension)
             .updateCollaboratorBalanceETH(0, collaborator);
 
@@ -685,7 +692,7 @@ contract OpenFormat is
         }
 
         // Transfer Payment
-        payable(oldOwner).sendValue(tokenSalePrice.sub(amount));
+        makePayment(msg.sender, owner(), value);
 
         _setTokenSalePrice(tokenId, 0);
 
@@ -719,6 +726,36 @@ contract OpenFormat is
         returns (uint256 value)
     {
         return totalValue.mul(pct).div(PERCENTAGE_SCALE);
+    }
+
+    function makePayment(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal {
+        if (currency != address(0)) {
+            //use ERC20
+            IERC20 token = IERC20(currency);
+
+            require(
+                token.balanceOf(sender) >= mintingPrice,
+                "insufficent funds"
+            );
+            require(
+                token.allowance(sender, address(this)) >= mintingPrice,
+                "insufficent allowance"
+            );
+            token.safeTransferFrom(sender, recipient, amount);
+        } else {
+            //Use native currency
+            payable(recipient).sendValue(amount);
+        }
+    }
+
+    function setCurrency(address _currency) external onlyOwner {
+        require(_currency != address(0), "use valid currency");
+        //@dev cross reference with list of valid ERC20 tokens.
+        currency = _currency;
     }
 
     /***********************************|

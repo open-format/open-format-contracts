@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { Contract } = require("ethers");
 const { ethers } = require("hardhat");
 const { beforeEach } = require("mocha");
 
@@ -20,21 +21,13 @@ describe("Open Format", function() {
       address1,
       address2,
       address3,
-      feeHandler,
+      feeHandler
     ] = await ethers.getSigners();
 
-    collaborators = [
-      address1.address,
-      address2.address,
-      address3.address,
-    ];
-    const FactoryContract = await ethers.getContractFactory(
-      "OpenFormat"
-    );
+    collaborators = [address1.address, address2.address, address3.address];
+    const FactoryContract = await ethers.getContractFactory("OpenFormat");
 
-    const RevShare = await ethers.getContractFactory(
-      "RevShareExtension"
-    );
+    const RevShare = await ethers.getContractFactory("RevShareExtension");
 
     revShare = await RevShare.connect(owner).deploy();
 
@@ -54,12 +47,14 @@ describe("Open Format", function() {
         collaboratorShares,
         holderPct
       );
+
+    await factoryContract.setCurrency(currency);
   });
 
   it("must add revShare contract as deposit manager", async () => {
-    expect(
-      await factoryContract.approvedRevShareExtension()
-    ).to.equal(revShare.address);
+    expect(await factoryContract.approvedRevShareExtension()).to.equal(
+      revShare.address
+    );
   });
 
   it("must increase totalSupply of tokens", async () => {
@@ -81,9 +76,9 @@ describe("Open Format", function() {
   it("must only allow holder or approved to burn", async () => {
     await factoryContract["mint()"]({ value: mintingPrice });
 
-    await expect(
-      factoryContract.connect(address1).burn(0)
-    ).to.be.revertedWith("OF:E-010");
+    await expect(factoryContract.connect(address1).burn(0)).to.be.revertedWith(
+      "OF:E-010"
+    );
   });
 
   it("must not allow more than the maxSupply of tokens to be minted", async () => {
@@ -114,9 +109,11 @@ describe("Open Format", function() {
       value: mintingPrice
     });
 
-    await expect(factoryContract.connect(address2)["buy(uint256)"](0, {
+    await expect(
+      factoryContract.connect(address2)["buy(uint256)"](0, {
         value: value
-    })).to.be.revertedWith("OF:E-007")
+      })
+    ).to.be.revertedWith("OF:E-007");
   });
 
   it("must set the tokenSalePrice to 0 after being purchased on the secondary market", async () => {

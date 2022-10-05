@@ -7,7 +7,7 @@ async function balance(address) {
   return await ethers.provider.getBalance(address);
 }
 
-describe("RevShareExtension", function () {
+describe("RevShareExtension", function() {
   let factoryContract;
   let revShare;
   let uri = "ipfs://";
@@ -22,19 +22,24 @@ describe("RevShareExtension", function () {
   const value = ethers.utils.parseEther("1");
 
   beforeEach(async () => {
-    
-    const FactoryContract = await ethers.getContractFactory(
-      "OpenFormat"
-    );
+    const Currency = await ethers.getContractFactory("Token");
 
-    const RevShare = await ethers.getContractFactory(
-      "RevShareExtension"
-    );
+    let currency = await Currency.deploy();
+
+    const FactoryContract = await ethers.getContractFactory("OpenFormat");
+
+    const RevShare = await ethers.getContractFactory("RevShareExtension");
 
     revShare = await RevShare.deploy();
 
-    [artist, collab1, ds, minter1, minter2, feePayer] =
-      await ethers.getSigners();
+    [
+      artist,
+      collab1,
+      ds,
+      minter1,
+      minter2,
+      feePayer
+    ] = await ethers.getSigners();
 
     collaborators = [artist.address, collab1.address, ds.address];
 
@@ -45,6 +50,8 @@ describe("RevShareExtension", function () {
       10,
       mintPrice
     );
+
+    await factoryContract.setCurrency(currency.address);
 
     await factoryContract.setApprovedRevShareExtension(
       revShare.address,
@@ -67,69 +74,53 @@ describe("RevShareExtension", function () {
   });
 
   it("should set collaborator shares", async () => {
-    const getSingleCollaboratorShare0 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[0]
-      );
-    const getSingleCollaboratorShare1 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getSingleCollaboratorShare2 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getSingleCollaboratorShare0 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[0]
+    );
+    const getSingleCollaboratorShare1 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getSingleCollaboratorShare2 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    expect(getSingleCollaboratorShare0).to.equal(
-      collaboratorShares[0]
-    );
-    expect(getSingleCollaboratorShare1).to.equal(
-      collaboratorShares[1]
-    );
-    expect(getSingleCollaboratorShare2).to.equal(
-      collaboratorShares[2]
-    );
+    expect(getSingleCollaboratorShare0).to.equal(collaboratorShares[0]);
+    expect(getSingleCollaboratorShare1).to.equal(collaboratorShares[1]);
+    expect(getSingleCollaboratorShare2).to.equal(collaboratorShares[2]);
   });
 
   it("should split mint revenue between collaborators", async () => {
     const mints = new Array(10).fill("");
 
-    
-
     await Promise.all(
-      mints.map(
-        async () => await factoryContract["mint()"]({ value })
-      )
+      mints.map(async () => await factoryContract["mint()"]({ value }))
     );
 
     const getArtistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
       collaborators[0]
     );
-    const getCollab1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getDSShareShares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getCollab1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getDSShareShares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     expect(artistRevShareBalance).to.equal(
       mintPrice
@@ -155,9 +146,7 @@ describe("RevShareExtension", function () {
     const mints = new Array(10).fill("");
 
     await Promise.all(
-      mints.map(
-        async () => await factoryContract["mint()"]({ value })
-      )
+      mints.map(async () => await factoryContract["mint()"]({ value }))
     );
 
     const maxSupply = await factoryContract.getMaxSupply();
@@ -166,34 +155,31 @@ describe("RevShareExtension", function () {
     // deposit 1 ETH
     await artist.sendTransaction({
       to: factoryContract.address,
-      value,
+      value
     });
 
     const getArtistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
       collaborators[0]
     );
-    const getCollab1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getDSShareShares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getCollab1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getDSShareShares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     function calculateArtistMintRevenue(shares) {
       return mintPrice
@@ -246,30 +232,23 @@ describe("RevShareExtension", function () {
 
   it("should correctly split royalties revenue", async () => {
     // set Royalties percentage to 50%
-    await factoryContract.setRoyalties(
-      factoryContract.address,
-      royaltyPct
-    );
+    await factoryContract.setRoyalties(factoryContract.address, royaltyPct);
 
     // mint NFT
     await factoryContract.connect(minter1)["mint()"]({
-      value: mintPrice,
+      value: mintPrice
     });
 
     // Set Token Sale Price
-    await factoryContract
-      .connect(minter1)
-      .setTokenSalePrice(0, value);
+    await factoryContract.connect(minter1).setTokenSalePrice(0, value);
 
     // Buy
     await factoryContract.connect(minter2)["buy(uint256)"](0, {
-      value: value,
+      value: value
     });
     const royaltyAmount = value.mul(royaltyPct).div(PERCENTAGE_SCALE);
 
-    const token0Balance = await factoryContract.getSingleTokenBalance(
-      0
-    );
+    const token0Balance = await factoryContract.getSingleTokenBalance(0);
 
     const artistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
@@ -284,16 +263,15 @@ describe("RevShareExtension", function () {
       collaborators[2]
     );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     function getTokenValueFromPercentageShare(value) {
       return value
@@ -368,14 +346,12 @@ describe("RevShareExtension", function () {
         async () =>
           await artist.sendTransaction({
             to: factoryContract.address,
-            value,
+            value
           })
       )
     );
 
-    const token0Balance = await factoryContract.getSingleTokenBalance(
-      0
-    );
+    const token0Balance = await factoryContract.getSingleTokenBalance(0);
 
     const holderAmount = value
       .mul(holderPct)
@@ -385,7 +361,12 @@ describe("RevShareExtension", function () {
     expect(token0Balance).to.equal(holderAmount.mul(deposits.length));
   });
 
-  it("should withdraw funds for a token holders", async () => {
+  it.only("should withdraw funds for a token holders", async () => {
+    await factoryContract.setCurrency(currency.address);
+    
+    await currency.mint(minter1);
+    await currency.mint(minter2);
+
     async function getTokenBalance(tokenId) {
       return await factoryContract.getSingleTokenBalance(tokenId);
     }
@@ -394,19 +375,13 @@ describe("RevShareExtension", function () {
     await factoryContract.connect(minter1)["mint()"]({ value });
     await factoryContract.connect(minter2)["mint()"]({ value });
 
-    await factoryContract
-      .connect(minter1)
-      .approve(feePayer.address, 0);
-    await factoryContract
-      .connect(minter1)
-      .approve(feePayer.address, 1);
-    await factoryContract
-      .connect(minter2)
-      .approve(feePayer.address, 2);
+    await factoryContract.connect(minter1).approve(feePayer.address, 0);
+    await factoryContract.connect(minter1).approve(feePayer.address, 1);
+    await factoryContract.connect(minter2).approve(feePayer.address, 2);
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(10),
+      value: value.mul(10)
     });
 
     const token0Balance = await getTokenBalance(0);
@@ -437,15 +412,11 @@ describe("RevShareExtension", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(1),
+      value: value.mul(1)
     });
 
-    const artistRevShareBalance = await getCollaboratorBalance(
-      artist
-    );
-    const collab1RevShareBalance = await getCollaboratorBalance(
-      collab1
-    );
+    const artistRevShareBalance = await getCollaboratorBalance(artist);
+    const collab1RevShareBalance = await getCollaboratorBalance(collab1);
     const dsRevShareBalance = await getCollaboratorBalance(ds);
 
     const artistBalanceSnapshot = await balance(artist.address);
@@ -458,9 +429,7 @@ describe("RevShareExtension", function () {
     await factoryContract
       .connect(feePayer)
       ["withdraw(address)"](collab1.address);
-    await factoryContract
-      .connect(feePayer)
-      ["withdraw(address)"](ds.address);
+    await factoryContract.connect(feePayer)["withdraw(address)"](ds.address);
 
     expect(await balance(artist.address)).to.equal(
       artistBalanceSnapshot.add(artistRevShareBalance)
@@ -482,7 +451,7 @@ describe("RevShareExtension", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(10),
+      value: value.mul(10)
     });
 
     await expect(
@@ -500,16 +469,14 @@ describe("RevShareExtension", function () {
       factoryContract.address,
       artist.address
     );
-    const getMinter1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        minter1.address
-      );
-    const getMinter2Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        minter2.address
-      );
+    const getMinter1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      minter1.address
+    );
+    const getMinter2Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      minter2.address
+    );
 
     expect(artistShares).to.equal(
       BigNumber.from(collaboratorShares[0]).sub(2000)
@@ -543,17 +510,15 @@ describe("RevShareExtension", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value,
+      value
     });
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const minter1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        minter1.address
-      );
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const minter1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      minter1.address
+    );
 
     const artistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
@@ -592,7 +557,7 @@ describe("RevShareExtension", function () {
   });
 });
 
-describe("RevShareExtension without NFT share", function () {
+describe("RevShareExtension without NFT share", function() {
   let factoryContract;
   let revShare;
   let uri = "ipfs://";
@@ -606,21 +571,21 @@ describe("RevShareExtension without NFT share", function () {
   const mintPrice = ethers.utils.parseEther("1");
   const value = ethers.utils.parseEther("1");
 
- 
-
   beforeEach(async () => {
-    const FactoryContract = await ethers.getContractFactory(
-      "OpenFormat"
-    );
+    const FactoryContract = await ethers.getContractFactory("OpenFormat");
 
-    const RevShare = await ethers.getContractFactory(
-      "RevShareExtension"
-    );
+    const RevShare = await ethers.getContractFactory("RevShareExtension");
 
     revShare = await RevShare.deploy();
 
-    [artist, collab1, ds, minter1, minter2, feePayer] =
-      await ethers.getSigners();
+    [
+      artist,
+      collab1,
+      ds,
+      minter1,
+      minter2,
+      feePayer
+    ] = await ethers.getSigners();
 
     collaborators = [artist.address, collab1.address, ds.address];
 
@@ -653,67 +618,53 @@ describe("RevShareExtension without NFT share", function () {
   });
 
   it("should set collaborator shares", async () => {
-    const getSingleCollaboratorShare0 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[0]
-      );
-    const getSingleCollaboratorShare1 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getSingleCollaboratorShare2 =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getSingleCollaboratorShare0 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[0]
+    );
+    const getSingleCollaboratorShare1 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getSingleCollaboratorShare2 = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    expect(getSingleCollaboratorShare0).to.equal(
-      collaboratorShares[0]
-    );
-    expect(getSingleCollaboratorShare1).to.equal(
-      collaboratorShares[1]
-    );
-    expect(getSingleCollaboratorShare2).to.equal(
-      collaboratorShares[2]
-    );
+    expect(getSingleCollaboratorShare0).to.equal(collaboratorShares[0]);
+    expect(getSingleCollaboratorShare1).to.equal(collaboratorShares[1]);
+    expect(getSingleCollaboratorShare2).to.equal(collaboratorShares[2]);
   });
 
   it("should split mint revenue between collaborators", async () => {
     const mints = new Array(10).fill("");
 
     await Promise.all(
-      mints.map(
-        async () => await factoryContract["mint()"]({ value })
-      )
+      mints.map(async () => await factoryContract["mint()"]({ value }))
     );
 
     const getArtistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
       collaborators[0]
     );
-    const getCollab1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getDSShareShares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getCollab1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getDSShareShares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     expect(artistRevShareBalance).to.equal(
       mintPrice
@@ -739,9 +690,7 @@ describe("RevShareExtension without NFT share", function () {
     const mints = new Array(10).fill("");
 
     await Promise.all(
-      mints.map(
-        async () => await factoryContract["mint()"]({ value })
-      )
+      mints.map(async () => await factoryContract["mint()"]({ value }))
     );
 
     const maxSupply = await factoryContract.getMaxSupply();
@@ -750,34 +699,31 @@ describe("RevShareExtension without NFT share", function () {
     // deposit 1 ETH
     await artist.sendTransaction({
       to: factoryContract.address,
-      value,
+      value
     });
 
     const getArtistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
       collaborators[0]
     );
-    const getCollab1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[1]
-      );
-    const getDSShareShares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        collaborators[2]
-      );
+    const getCollab1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[1]
+    );
+    const getDSShareShares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      collaborators[2]
+    );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     function calculateArtistMintRevenue(shares) {
       return mintPrice
@@ -830,30 +776,23 @@ describe("RevShareExtension without NFT share", function () {
 
   it("should correctly split royalties revenue", async () => {
     // set Royalties percentage to 50%
-    await factoryContract.setRoyalties(
-      factoryContract.address,
-      royaltyPct
-    );
+    await factoryContract.setRoyalties(factoryContract.address, royaltyPct);
 
     // mint NFT
     await factoryContract.connect(minter1)["mint()"]({
-      value: mintPrice,
+      value: mintPrice
     });
 
     // Set Token Sale Price
-    await factoryContract
-      .connect(minter1)
-      .setTokenSalePrice(0, value);
+    await factoryContract.connect(minter1).setTokenSalePrice(0, value);
 
     // Buy
     await factoryContract.connect(minter2)["buy(uint256)"](0, {
-      value: value,
+      value: value
     });
     const royaltyAmount = value.mul(royaltyPct).div(PERCENTAGE_SCALE);
 
-    const token0Balance = await factoryContract.getSingleTokenBalance(
-      0
-    );
+    const token0Balance = await factoryContract.getSingleTokenBalance(0);
 
     const artistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
@@ -868,16 +807,15 @@ describe("RevShareExtension without NFT share", function () {
       collaborators[2]
     );
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const collab1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        collab1.address
-      );
-    const dsShareRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(ds.address);
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const collab1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      collab1.address
+    );
+    const dsShareRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      ds.address
+    );
 
     function getTokenValueFromPercentageShare(value) {
       return value
@@ -952,14 +890,12 @@ describe("RevShareExtension without NFT share", function () {
         async () =>
           await artist.sendTransaction({
             to: factoryContract.address,
-            value,
+            value
           })
       )
     );
 
-    const token0Balance = await factoryContract.getSingleTokenBalance(
-      0
-    );
+    const token0Balance = await factoryContract.getSingleTokenBalance(0);
 
     const holderAmount = value
       .mul(holderPct)
@@ -978,19 +914,13 @@ describe("RevShareExtension without NFT share", function () {
     await factoryContract.connect(minter1)["mint()"]({ value });
     await factoryContract.connect(minter2)["mint()"]({ value });
 
-    await factoryContract
-      .connect(minter1)
-      .approve(feePayer.address, 0);
-    await factoryContract
-      .connect(minter1)
-      .approve(feePayer.address, 1);
-    await factoryContract
-      .connect(minter2)
-      .approve(feePayer.address, 2);
+    await factoryContract.connect(minter1).approve(feePayer.address, 0);
+    await factoryContract.connect(minter1).approve(feePayer.address, 1);
+    await factoryContract.connect(minter2).approve(feePayer.address, 2);
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(10),
+      value: value.mul(10)
     });
 
     const token0Balance = await getTokenBalance(0);
@@ -1000,10 +930,9 @@ describe("RevShareExtension without NFT share", function () {
     const minter1BalanceSnapshot = await balance(minter1.address);
     const minter2BalanceSnapshot = await balance(minter2.address);
 
-    await expect(factoryContract.connect(feePayer)["withdraw(uint256)"](0)).to.be.revertedWith("OF:E-011") 
-
-
-   
+    await expect(
+      factoryContract.connect(feePayer)["withdraw(uint256)"](0)
+    ).to.be.revertedWith("OF:E-011");
   });
 
   it("should withdraw funds for a collaborator", async () => {
@@ -1015,15 +944,11 @@ describe("RevShareExtension without NFT share", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(1),
+      value: value.mul(1)
     });
 
-    const artistRevShareBalance = await getCollaboratorBalance(
-      artist
-    );
-    const collab1RevShareBalance = await getCollaboratorBalance(
-      collab1
-    );
+    const artistRevShareBalance = await getCollaboratorBalance(artist);
+    const collab1RevShareBalance = await getCollaboratorBalance(collab1);
     const dsRevShareBalance = await getCollaboratorBalance(ds);
 
     const artistBalanceSnapshot = await balance(artist.address);
@@ -1036,9 +961,7 @@ describe("RevShareExtension without NFT share", function () {
     await factoryContract
       .connect(feePayer)
       ["withdraw(address)"](collab1.address);
-    await factoryContract
-      .connect(feePayer)
-      ["withdraw(address)"](ds.address);
+    await factoryContract.connect(feePayer)["withdraw(address)"](ds.address);
 
     expect(await balance(artist.address)).to.equal(
       artistBalanceSnapshot.add(artistRevShareBalance)
@@ -1060,7 +983,7 @@ describe("RevShareExtension without NFT share", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value: value.mul(10),
+      value: value.mul(10)
     });
 
     await expect(
@@ -1078,16 +1001,14 @@ describe("RevShareExtension without NFT share", function () {
       factoryContract.address,
       artist.address
     );
-    const getMinter1Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        minter1.address
-      );
-    const getMinter2Shares =
-      await revShare.getSingleCollaboratorShare(
-        factoryContract.address,
-        minter2.address
-      );
+    const getMinter1Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      minter1.address
+    );
+    const getMinter2Shares = await revShare.getSingleCollaboratorShare(
+      factoryContract.address,
+      minter2.address
+    );
 
     expect(artistShares).to.equal(
       BigNumber.from(collaboratorShares[0]).sub(2000)
@@ -1126,17 +1047,15 @@ describe("RevShareExtension without NFT share", function () {
 
     await artist.sendTransaction({
       to: factoryContract.address,
-      value,
+      value
     });
 
-    const artistRevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        artist.address
-      );
-    const minter1RevShareBalance =
-      await factoryContract.getSingleCollaboratorBalance(
-        minter1.address
-      );
+    const artistRevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      artist.address
+    );
+    const minter1RevShareBalance = await factoryContract.getSingleCollaboratorBalance(
+      minter1.address
+    );
 
     const artistShares = await revShare.getSingleCollaboratorShare(
       factoryContract.address,
@@ -1175,7 +1094,7 @@ describe("RevShareExtension without NFT share", function () {
   });
 });
 
-describe("WithoutRevShareExtension", function () {
+describe("WithoutRevShareExtension", function() {
   let factoryContract;
   let uri = "ipfs://";
   let maxSupply;
@@ -1184,9 +1103,7 @@ describe("WithoutRevShareExtension", function () {
   const value = ethers.utils.parseEther("1");
 
   beforeEach(async () => {
-    const FactoryContract = await ethers.getContractFactory(
-      "OpenFormat"
-    );
+    const FactoryContract = await ethers.getContractFactory("OpenFormat");
 
     [artist, minter1, minter2, feePayer] = await ethers.getSigners();
 
@@ -1207,8 +1124,7 @@ describe("WithoutRevShareExtension", function () {
 
     await Promise.all(
       mints.map(
-        async () =>
-          await factoryContract.connect(feePayer)["mint()"]({ value })
+        async () => await factoryContract.connect(feePayer)["mint()"]({ value })
       )
     );
 
@@ -1221,7 +1137,7 @@ describe("WithoutRevShareExtension", function () {
     const artistBalanceSnapshot = await balance(artist.address);
     await feePayer.sendTransaction({
       to: factoryContract.address,
-      value,
+      value
     });
 
     expect(await balance(artist.address)).to.be.equal(
@@ -1230,10 +1146,8 @@ describe("WithoutRevShareExtension", function () {
   });
   it("should revert on withdraw", async () => {
     await factoryContract["mint()"]({ value });
-    await expect(
-      factoryContract["withdraw(uint256)"](0)
-    ).to.be.revertedWith("OF:E-003");
+    await expect(factoryContract["withdraw(uint256)"](0)).to.be.revertedWith(
+      "OF:E-003"
+    );
   });
 });
-
-

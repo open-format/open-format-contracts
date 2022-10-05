@@ -8,7 +8,10 @@
   },
   "scripts": {
     "node:start": "npx hardhat node",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "deploy": "npx hardhat run scripts/deploy.js",
+    "deploy-local": "npx hardhat run scripts/deploy.js --network localhost",
+    "node": "npx hardhat node --hostname 0.0.0.0"
   },
   "main": "index.js",
   "devDependencies": {
@@ -24,5 +27,8 @@
     "hardhat": "^2.8.3",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-docgen": "^0.6.0-beta.10"
+  },
+  "dependencies": {
+    "nft.storage": "^7.0.0"
   }
 }
