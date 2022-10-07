@@ -98,12 +98,14 @@ module.exports = {
       gasPrice: 8e9
     },
     polygon: {
-      url: POLYGON_RPC_PROVIDER,
+      url: POLYGON_RPC_PROVIDER || "https://polygon-rpc.com",
       accounts: [`${PRIVATE_KEY}`],
       gasPrice: 8e9
     },
     mumbai: {
-      url: POLYGON_MUMBAI_RPC_PROVIDER,
+      url:
+        POLYGON_MUMBAI_RPC_PROVIDER ||
+        "https://matic-mumbai.chainstacklabs.com",
       accounts: [`${PRIVATE_KEY}`]
     }
   },
