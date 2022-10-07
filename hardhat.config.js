@@ -4,8 +4,7 @@ require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-docgen");
 require("@nomiclabs/hardhat-solhint");
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
+
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
 
@@ -56,7 +55,13 @@ task("verify-contract", "Verify Open Format contract")
     });
   });
   
-const { PRIVATE_KEY, POLYGONSCAN_API_KEY } = process.env;
+const {
+  POLYGON_MUMBAI_RPC_PROVIDER,
+  POLYGON_RPC_PROVIDER,
+  PRIVATE_KEY,
+  COIN_MARKET_CAP_API_KEY,
+  POLYGONSCAN_API_KEY,
+} = process.env;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -82,20 +87,21 @@ module.exports = {
     ]
   },
   gasReporter: {
-    enabled: false,
+    enabled: true,
     currency: "GBP",
     token: "ETH",
-    coinmarketcap: "35a411fc-0de9-44ec-89fb-d8ae25ad2597"
+    coinmarketcap: COIN_MARKET_CAP_API_KEY,
   },
   networks: {
     hardhat: {
-      blockGasLimit: 200000000,
+      blockGasLimit: 2e8,
       allowUnlimitedContractSize: true,
-      gasPrice: 8000000000
+      gasPrice: 8e9
     },
     polygon: {
       url: "https://polygon-rpc.com",
       accounts: [`${PRIVATE_KEY}`]
+      gasPrice: 8e9,
     },
     mumbai: {
       url: "https://matic-mumbai.chainstacklabs.com",
