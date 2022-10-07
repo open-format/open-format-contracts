@@ -54,13 +54,12 @@ task("verify-contract", "Verify Open Format contract")
       ]
     });
   });
-  
 const {
-  POLYGON_MUMBAI_RPC_PROVIDER,
   POLYGON_RPC_PROVIDER,
+  POLYGON_MUMBAI_RPC_PROVIDER,
   PRIVATE_KEY,
   COIN_MARKET_CAP_API_KEY,
-  POLYGONSCAN_API_KEY,
+  POLYGONSCAN_API_KEY
 } = process.env;
 
 // You need to export an object to set up your config
@@ -90,7 +89,7 @@ module.exports = {
     enabled: true,
     currency: "GBP",
     token: "ETH",
-    coinmarketcap: COIN_MARKET_CAP_API_KEY,
+    coinmarketcap: COIN_MARKET_CAP_API_KEY
   },
   networks: {
     hardhat: {
@@ -99,12 +98,12 @@ module.exports = {
       gasPrice: 8e9
     },
     polygon: {
-      url: "https://polygon-rpc.com",
-      accounts: [`${PRIVATE_KEY}`]
-      gasPrice: 8e9,
+      url: POLYGON_RPC_PROVIDER,
+      accounts: [`${PRIVATE_KEY}`],
+      gasPrice: 8e9
     },
     mumbai: {
-      url: "https://matic-mumbai.chainstacklabs.com",
+      url: POLYGON_MUMBAI_RPC_PROVIDER,
       accounts: [`${PRIVATE_KEY}`]
     }
   },
