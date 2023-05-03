@@ -1,4 +1,4 @@
-**This repository has been archived as a new and improved version of the SDK is now available in a separate repository. The latest version of the SDK can be found [here](https://github.com/open-format/contracts)**.
+**This repository has been archived as a new and improved version of the smart contracts are now available in a separate repository. The latest version of the smart contracts can be found [here](https://github.com/open-format/contracts)**.
 
 # Basic Sample Hardhat Project
 
